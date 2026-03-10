@@ -10,7 +10,21 @@ create type public.activity_type as enum (
   'sequence-order',
   'memory-cards',
   'logic-game',
-  'maze-path'
+  'maze-path',
+  'connect-logic',
+  'code-blocks',
+  'word-builder'
+);
+create type public.interaction_type as enum (
+  'drag-drop',
+  'click-select',
+  'draw-trace',
+  'type-answer',
+  'object-match',
+  'sort',
+  'sequence',
+  'connect',
+  'block-arrange'
 );
 create type public.asset_type as enum ('image', 'audio');
 
@@ -41,15 +55,37 @@ create table if not exists public.children (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.activity_templates (
+  id uuid primary key default gen_random_uuid(),
+  template_key text not null unique,
+  activity_type public.activity_type not null,
+  interaction_type public.interaction_type not null,
+  title text not null,
+  description text not null,
+  learning_areas text[] not null default '{}',
+  difficulty_rules_json jsonb not null default '{}'::jsonb,
+  generation_rules_json jsonb not null default '{}'::jsonb,
+  explanation_text text not null,
+  fact_pool_json jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.activities (
   id uuid primary key default gen_random_uuid(),
+  template_id uuid references public.activity_templates (id) on delete set null,
   title text not null,
   slug text not null unique,
   type public.activity_type not null,
+  interaction_type public.interaction_type not null,
   age_min int not null check (age_min between 4 and 12),
   age_max int not null check (age_max between 4 and 12),
   difficulty int not null check (difficulty between 1 and 3),
+  recommended_level int not null default 1 check (recommended_level >= 1),
+  learning_areas text[] not null default '{}',
   instructions_text text not null,
+  explanation_text text,
+  fun_fact text,
   instructions_audio_url text,
   thumbnail_url text,
   config_json jsonb not null default '{}'::jsonb,
@@ -87,12 +123,23 @@ create table if not exists public.activity_attempts (
   id uuid primary key default gen_random_uuid(),
   child_id uuid not null references public.children (id) on delete cascade,
   activity_id uuid not null references public.activities (id) on delete cascade,
+  activity_type public.activity_type not null,
+  interaction_type public.interaction_type not null,
+  learning_areas text[] not null default '{}',
+  level_played int not null default 1 check (level_played >= 1),
+  difficulty_snapshot int not null default 1 check (difficulty_snapshot between 1 and 3),
   score int not null check (score between 0 and 100),
+  success_rate numeric(5,2) not null default 0 check (success_rate between 0 and 100),
+  correct_answers_count int not null default 0 check (correct_answers_count >= 0),
+  total_questions int not null default 1 check (total_questions >= 1),
   stars_earned int not null default 0 check (stars_earned between 0 and 3),
   completed boolean not null default false,
   hints_used int not null default 0,
   mistakes_count int not null default 0,
   duration_seconds int not null default 0,
+  explanation_text text,
+  fun_fact text,
+  learning_area_scores_json jsonb not null default '{}'::jsonb,
   started_at timestamptz not null,
   finished_at timestamptz not null
 );
@@ -133,6 +180,11 @@ create trigger children_set_updated_at
 before update on public.children
 for each row execute procedure public.set_updated_at();
 
+drop trigger if exists activity_templates_set_updated_at on public.activity_templates;
+create trigger activity_templates_set_updated_at
+before update on public.activity_templates
+for each row execute procedure public.set_updated_at();
+
 drop trigger if exists activities_set_updated_at on public.activities;
 create trigger activities_set_updated_at
 before update on public.activities
@@ -145,6 +197,7 @@ for each row execute procedure public.set_updated_at();
 
 alter table public.profiles enable row level security;
 alter table public.children enable row level security;
+alter table public.activity_templates enable row level security;
 alter table public.activities enable row level security;
 alter table public.activity_items enable row level security;
 alter table public.activity_assets enable row level security;
@@ -173,6 +226,30 @@ on public.children
 for all
 using (auth.uid() = parent_id)
 with check (auth.uid() = parent_id);
+
+create policy "activity templates readable"
+on public.activity_templates
+for select
+using (
+  auth.role() = 'authenticated'
+  or auth.role() = 'anon'
+);
+
+create policy "admins manage templates"
+on public.activity_templates
+for all
+using (
+  exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid() and p.role = 'admin'
+  )
+)
+with check (
+  exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid() and p.role = 'admin'
+  )
+);
 
 create policy "published activities are readable"
 on public.activities

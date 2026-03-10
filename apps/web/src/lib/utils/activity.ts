@@ -1,5 +1,9 @@
 import { themePacks } from "@/lib/constants/sample-data";
 import {
+  buildLearningAreaScores,
+  getDifficultyForLevel
+} from "@/features/activities/template-registry";
+import {
   ActivityCompletionPayload,
   ActivityDefinition,
   ActivityOutcome,
@@ -19,19 +23,25 @@ export function getActivityTypeLabel(type: ActivityType) {
     case "count-objects":
       return "Count the Objects";
     case "pattern-complete":
-      return "Pattern Completion";
+      return "Pattern Builder";
     case "odd-one-out":
       return "Odd One Out";
     case "sequence-order":
       return "Story Sequence";
     case "sort-game":
-      return "Shape Sorting";
+      return "Logic Sorting";
     case "memory-cards":
       return "Memory Cards";
     case "logic-game":
       return "Logic Game";
     case "maze-path":
-      return "Maze Path";
+      return "Maze Direction";
+    case "connect-logic":
+      return "Connect The Logic";
+    case "code-blocks":
+      return "Code Blocks Thinking";
+    case "word-builder":
+      return "Word Builder";
     default:
       return "Activity";
   }
@@ -60,15 +70,25 @@ export function calculateStars(score: number) {
 export function buildOutcome(
   isCorrect: boolean,
   mistakesCount: number,
-  durationSeconds: number
+  durationSeconds: number,
+  options?: {
+    correctAnswersCount?: number;
+    totalQuestions?: number;
+  }
 ): ActivityOutcome {
   const baseScore = isCorrect ? 100 : 35;
   const penalty = mistakesCount * 10;
   const score = Math.max(10, baseScore - penalty);
+  const correctAnswersCount = options?.correctAnswersCount ?? (isCorrect ? 1 : 0);
+  const totalQuestions = Math.max(1, options?.totalQuestions ?? 1);
+  const successRate = Math.round((correctAnswersCount / totalQuestions) * 100);
 
   return {
     isCorrect,
     score,
+    successRate,
+    correctAnswersCount,
+    totalQuestions,
     starsEarned: calculateStars(score),
     mistakesCount,
     completed: isCorrect,
@@ -87,6 +107,14 @@ export function buildSessionOutcome(outcomes: ActivityOutcome[]) {
     (sum, outcome) => sum + outcome.durationSeconds,
     0
   );
+  const totalCorrectAnswers = outcomes.reduce(
+    (sum, outcome) => sum + outcome.correctAnswersCount,
+    0
+  );
+  const totalQuestions = outcomes.reduce(
+    (sum, outcome) => sum + outcome.totalQuestions,
+    0
+  );
   const averageScore = outcomes.length
     ? Math.round(totalScore / outcomes.length)
     : 0;
@@ -94,6 +122,9 @@ export function buildSessionOutcome(outcomes: ActivityOutcome[]) {
   return {
     isCorrect: completedCount === outcomes.length && outcomes.length > 0,
     score: averageScore,
+    successRate: Math.round((totalCorrectAnswers / Math.max(1, totalQuestions)) * 100),
+    correctAnswersCount: totalCorrectAnswers,
+    totalQuestions,
     starsEarned: calculateStars(averageScore),
     mistakesCount: totalMistakes,
     completed: completedCount === outcomes.length && outcomes.length > 0,
@@ -108,15 +139,34 @@ export function buildAttemptPayload(input: {
   startedAt: string;
   finishedAt: string;
 }): ActivityCompletionPayload {
+  const difficultySnapshot = Math.max(
+    input.activity.difficulty,
+    getDifficultyForLevel(input.activity.recommendedLevel)
+  );
+
   return {
     childId: input.child.id,
     activityId: input.activity.id,
+    activityType: input.activity.type,
+    interactionType: input.activity.interactionType,
+    learningAreas: input.activity.learningAreas,
+    levelPlayed: input.activity.recommendedLevel,
+    difficultySnapshot,
     score: input.outcome.score,
+    successRate: input.outcome.successRate,
+    correctAnswersCount: input.outcome.correctAnswersCount,
+    totalQuestions: input.outcome.totalQuestions,
     starsEarned: input.outcome.starsEarned,
     completed: input.outcome.completed,
     hintsUsed: 0,
     mistakesCount: input.outcome.mistakesCount,
     durationSeconds: input.outcome.durationSeconds,
+    explanationText: input.activity.explanationText,
+    funFact: input.activity.funFact,
+    learningAreaScores: buildLearningAreaScores(
+      input.activity.learningAreas,
+      input.outcome.successRate
+    ),
     startedAt: input.startedAt,
     finishedAt: input.finishedAt
   };

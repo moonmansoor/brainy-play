@@ -9,7 +9,42 @@ export type ActivityType =
   | "sequence-order"
   | "memory-cards"
   | "logic-game"
-  | "maze-path";
+  | "maze-path"
+  | "connect-logic"
+  | "code-blocks"
+  | "word-builder";
+
+export type InteractionType =
+  | "drag-drop"
+  | "click-select"
+  | "draw-trace"
+  | "type-answer"
+  | "object-match"
+  | "sort"
+  | "sequence"
+  | "connect"
+  | "block-arrange";
+
+export type ActivityTemplateKey =
+  | "shape-match"
+  | "count-objects"
+  | "pattern-builder"
+  | "logic-sorting"
+  | "sequence-ordering"
+  | "odd-one-out"
+  | "maze-direction"
+  | "connect-logic"
+  | "code-blocks-thinking"
+  | "word-builder";
+
+export type LearningArea =
+  | "pattern-recognition"
+  | "logic-reasoning"
+  | "spatial-thinking"
+  | "memory"
+  | "problem-solving"
+  | "sequencing"
+  | "classification";
 
 export type Difficulty = 1 | 2 | 3;
 
@@ -67,6 +102,38 @@ export type ActivityAsset = {
   assetType: ActivityAssetType;
   fileUrl: string;
   metadata: Record<string, string | number | boolean>;
+};
+
+export type ActivityTemplateDifficultyRules = {
+  minLevel: number;
+  maxLevel: number;
+  baseItemCount: number;
+  maxItemCount: number;
+  unlocksMultiStepAtLevel?: number;
+  complexityHint: string;
+};
+
+export type ActivityTemplateGenerationRules = {
+  minPromptCount: number;
+  maxPromptCount: number;
+  supportsRandomGeneration: boolean;
+  assetPool: string[];
+  notes: string;
+};
+
+export type ActivityTemplate = {
+  id: string;
+  key: ActivityTemplateKey;
+  title: string;
+  description: string;
+  activityType: ActivityType;
+  interactionType: InteractionType;
+  supportedThemes: ThemeId[];
+  learningAreas: LearningArea[];
+  difficultyRules: ActivityTemplateDifficultyRules;
+  generationRules: ActivityTemplateGenerationRules;
+  defaultExplanationText: string;
+  factPool: string[];
 };
 
 export type ShapeOption = {
@@ -140,6 +207,57 @@ export type SortGameConfig = {
   options: SortOption[];
 };
 
+export type MazeCell = {
+  row: number;
+  col: number;
+};
+
+export type MazePathConfig = {
+  gridSize: number;
+  start: MazeCell;
+  goal: MazeCell;
+  blockedCells: MazeCell[];
+  hintText?: string;
+};
+
+export type ConnectLogicPrompt = {
+  id: string;
+  label: string;
+  emoji: string;
+  color: string;
+};
+
+export type ConnectLogicTarget = {
+  id: string;
+  label: string;
+  emoji: string;
+  color: string;
+};
+
+export type ConnectLogicConfig = {
+  prompts: ConnectLogicPrompt[];
+  targets: ConnectLogicTarget[];
+};
+
+export type CodeBlock = {
+  id: string;
+  label: string;
+  emoji?: string;
+  color: string;
+};
+
+export type CodeBlocksConfig = {
+  prompt: string;
+  blocks: CodeBlock[];
+};
+
+export type WordBuilderConfig = {
+  prompt: string;
+  placeholderLength: number;
+  keyboard: string[];
+  acceptableAnswers: string[];
+};
+
 export type MemoryCardConfig = {
   cards: Array<{
     id: string;
@@ -157,15 +275,6 @@ export type LogicGameConfig = {
   }>;
 };
 
-export type MazePathConfig = {
-  prompt: string;
-  options: Array<{
-    id: string;
-    label: string;
-    directions: string[];
-  }>;
-};
-
 export type ActivityItemConfig =
   | ShapeMatchConfig
   | CountObjectsConfig
@@ -173,9 +282,12 @@ export type ActivityItemConfig =
   | OddOneOutConfig
   | SequenceOrderConfig
   | SortGameConfig
+  | MazePathConfig
+  | ConnectLogicConfig
+  | CodeBlocksConfig
+  | WordBuilderConfig
   | MemoryCardConfig
-  | LogicGameConfig
-  | MazePathConfig;
+  | LogicGameConfig;
 
 export type ShapeMatchAnswer = {
   correctOptionId: string;
@@ -201,16 +313,28 @@ export type SortGameAnswer = {
   correctGroups: Record<string, string>;
 };
 
+export type MazePathAnswer = {
+  correctPath: Array<"up" | "down" | "left" | "right">;
+};
+
+export type ConnectLogicAnswer = {
+  correctMatches: Record<string, string>;
+};
+
+export type CodeBlocksAnswer = {
+  correctOrderIds: string[];
+};
+
+export type WordBuilderAnswer = {
+  acceptableAnswers: string[];
+};
+
 export type MemoryCardAnswer = {
   pairIds: string[];
 };
 
 export type LogicGameAnswer = {
   correctChoiceId: string;
-};
-
-export type MazePathAnswer = {
-  correctOptionId: string;
 };
 
 export type ActivityItemAnswer =
@@ -220,9 +344,12 @@ export type ActivityItemAnswer =
   | OddOneOutAnswer
   | SequenceOrderAnswer
   | SortGameAnswer
+  | MazePathAnswer
+  | ConnectLogicAnswer
+  | CodeBlocksAnswer
+  | WordBuilderAnswer
   | MemoryCardAnswer
-  | LogicGameAnswer
-  | MazePathAnswer;
+  | LogicGameAnswer;
 
 export type ActivityItemAssetReference = {
   id: string;
@@ -275,13 +402,20 @@ export type ActivityVisualTheme = {
 
 export type ActivityDefinition = {
   id: string;
+  templateId: string;
+  templateKey: ActivityTemplateKey;
   title: string;
   slug: string;
   type: ActivityType;
+  interactionType: InteractionType;
   ageMin: number;
   ageMax: number;
   difficulty: Difficulty;
+  recommendedLevel: number;
+  learningAreas: LearningArea[];
   instructionsText: string;
+  explanationText: string;
+  funFact: string;
   instructionsAudioUrl?: string;
   thumbnailUrl?: string;
   settingsConfig?: Record<string, unknown>;
@@ -294,16 +428,29 @@ export type ActivityDefinition = {
   updatedAt: string;
 };
 
+export type LearningAreaScores = Partial<Record<LearningArea, number>>;
+
 export type ActivityAttempt = {
   id: string;
   childId: string;
   activityId: string;
+  activityType: ActivityType;
+  interactionType: InteractionType;
+  learningAreas: LearningArea[];
+  levelPlayed: number;
+  difficultySnapshot: number;
   score: number;
+  successRate: number;
+  correctAnswersCount: number;
+  totalQuestions: number;
   starsEarned: number;
   completed: boolean;
   hintsUsed: number;
   mistakesCount: number;
   durationSeconds: number;
+  explanationText?: string;
+  funFact?: string;
+  learningAreaScores: LearningAreaScores;
   startedAt: string;
   finishedAt: string;
 };
@@ -326,12 +473,23 @@ export type ChildBadge = {
 export type ActivityCompletionPayload = {
   childId: string;
   activityId: string;
+  activityType: ActivityType;
+  interactionType: InteractionType;
+  learningAreas: LearningArea[];
+  levelPlayed: number;
+  difficultySnapshot: number;
   score: number;
+  successRate: number;
+  correctAnswersCount: number;
+  totalQuestions: number;
   starsEarned: number;
   completed: boolean;
   hintsUsed: number;
   mistakesCount: number;
   durationSeconds: number;
+  explanationText?: string;
+  funFact?: string;
+  learningAreaScores: LearningAreaScores;
   startedAt: string;
   finishedAt: string;
 };
@@ -339,6 +497,9 @@ export type ActivityCompletionPayload = {
 export type ActivityOutcome = {
   isCorrect: boolean;
   score: number;
+  successRate: number;
+  correctAnswersCount: number;
+  totalQuestions: number;
   starsEarned: number;
   mistakesCount: number;
   completed: boolean;

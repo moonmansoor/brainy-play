@@ -1,7 +1,13 @@
 import {
+  activityTemplates,
+  getActivityTemplate,
+  pickFunFact
+} from "@/features/activities/template-registry";
+import {
   ActivityAttempt,
   ActivityDefinition,
   ActivityItem,
+  ActivityTemplateKey,
   ActivityVisualTheme,
   Badge,
   ChildProfile,
@@ -119,7 +125,7 @@ export const sampleChildren: ChildProfile[] = [
     displayName: "Mika",
     birthDate: "2020-04-10",
     schoolStandard: "Kindergarten",
-    progressSummary: "Loves colors and quick matching games.",
+    progressSummary: "Loves visual matching and playful paths.",
     themePreferences: {
       favoriteThemes: ["animals", "nature"],
       favoriteColor: "#ef8b47",
@@ -133,7 +139,7 @@ export const sampleChildren: ChildProfile[] = [
     displayName: "Rafi",
     birthDate: "2017-02-18",
     schoolStandard: "Standard 2",
-    progressSummary: "Strong at counting and starting pattern work.",
+    progressSummary: "Enjoys sequencing, blocks, and robot puzzles.",
     themePreferences: {
       favoriteThemes: ["space", "robots"],
       favoriteColor: "#5b7cfa",
@@ -147,7 +153,7 @@ export const sampleChildren: ChildProfile[] = [
     displayName: "Sara",
     birthDate: "2015-11-03",
     schoolStandard: "Standard 4",
-    progressSummary: "Ready for faster multi-step logic challenges.",
+    progressSummary: "Ready for richer logic and spatial challenges.",
     themePreferences: {
       favoriteThemes: ["dinosaurs", "space"],
       favoriteColor: "#3db27f",
@@ -199,101 +205,105 @@ function buildItem(
   };
 }
 
-function buildActivity(
-  activity: Omit<ActivityDefinition, "createdAt" | "updatedAt" | "settingsConfig"> & {
-    settingsConfig?: Record<string, unknown>;
+function buildActivity(input: {
+  id: string;
+  templateKey: ActivityTemplateKey;
+  title: string;
+  slug: string;
+  ageMin: number;
+  ageMax: number;
+  difficulty: 1 | 2 | 3;
+  recommendedLevel: number;
+  instructionsText: string;
+  thumbnailUrl: string;
+  defaultThemeId: ThemeId;
+  supportedThemeIds: ThemeId[];
+  visualThemes: ActivityVisualTheme[];
+  items: ActivityItem[];
+}) {
+  const template = getActivityTemplate(input.templateKey);
+  if (!template) {
+    throw new Error(`Missing template ${input.templateKey}.`);
   }
-): ActivityDefinition {
+
   return {
-    ...activity,
-    settingsConfig: activity.settingsConfig ?? {},
+    id: input.id,
+    templateId: template.id,
+    templateKey: template.key,
+    title: input.title,
+    slug: input.slug,
+    type: template.activityType,
+    interactionType: template.interactionType,
+    ageMin: input.ageMin,
+    ageMax: input.ageMax,
+    difficulty: input.difficulty,
+    recommendedLevel: input.recommendedLevel,
+    learningAreas: template.learningAreas,
+    instructionsText: input.instructionsText,
+    explanationText: template.defaultExplanationText,
+    funFact: pickFunFact(template, input.recommendedLevel),
+    thumbnailUrl: input.thumbnailUrl,
+    settingsConfig: {
+      templateKey: template.key,
+      generatedFromTemplate: true,
+      levelBand: `${template.difficultyRules.minLevel}-${template.difficultyRules.maxLevel}`
+    },
+    defaultThemeId: input.defaultThemeId,
+    supportedThemeIds: input.supportedThemeIds,
+    visualThemes: input.visualThemes,
+    items: input.items,
+    isPublished: true,
     createdAt: timestamp,
     updatedAt: timestamp
-  };
+  } satisfies ActivityDefinition;
 }
 
 export const sampleActivities: ActivityDefinition[] = [
   buildActivity({
     id: "activity-shape-match",
+    templateKey: "shape-match",
     title: "Shape Match Adventure",
     slug: "shape-match-adventure",
-    type: "shape-match",
     ageMin: 4,
     ageMax: 6,
     difficulty: 1,
-    instructionsText: "Tap the card that matches the big shape clue.",
+    recommendedLevel: 1,
+    instructionsText: "Match the big shape clue to the right card.",
     thumbnailUrl: "/images/themes/animals-hero.svg",
     defaultThemeId: "animals",
     supportedThemeIds: ["animals", "space", "dinosaurs"],
     visualThemes: [
       buildVisualTheme("animals", {
         cardTitle: "Forest Shape Match",
-        cardBlurb: "Help Pip match meadow signs one clue at a time.",
-        heroTitle: "Match Pip's forest badge",
-        heroHint: "Study the big clue and tap the same shape card.",
-        shapeLabels: {
-          circle: "berry badge",
-          square: "picnic crate",
-          triangle: "pine tree",
-          star: "firefly sparkle"
-        },
-        shapeIcons: {
-          circle: "🫐",
-          square: "🧺",
-          triangle: "🌲",
-          star: "✨"
-        }
+        cardBlurb: "Help Pip spot the matching badge.",
+        heroTitle: "Which sign matches Pip's clue?",
+        heroHint: "Look at the shape first, then tap the same one."
       }),
       buildVisualTheme("space", {
         cardTitle: "Galaxy Shape Match",
-        cardBlurb: "Guide Nova to the matching cosmic sign.",
+        cardBlurb: "Guide Nova to the correct cosmic sign.",
         heroTitle: "Find Nova's matching space sign",
-        heroHint: "Each space badge has its own shape. Match the clue exactly.",
-        shapeLabels: {
-          circle: "planet orb",
-          square: "cargo pod",
-          triangle: "rocket fin",
-          star: "twinkle star"
-        },
-        shapeIcons: {
-          circle: "🪐",
-          square: "📦",
-          triangle: "🚀",
-          star: "⭐"
-        }
+        heroHint: "Every shape has its own space badge."
       }),
       buildVisualTheme("dinosaurs", {
         cardTitle: "Dino Shape Match",
-        cardBlurb: "Follow Rexi's footprints to the correct fossil sign.",
-        heroTitle: "Pick the matching dino fossil shape",
-        heroHint: "Look closely at the fossil clue before you choose.",
-        shapeLabels: {
-          circle: "fossil egg",
-          square: "stone block",
-          triangle: "peak rock",
-          star: "claw sparkle"
-        },
-        shapeIcons: {
-          circle: "🥚",
-          square: "🧱",
-          triangle: "⛰",
-          star: "🌟"
-        }
+        cardBlurb: "Follow Rexi's fossil clue to the right shape.",
+        heroTitle: "Pick the matching fossil shape",
+        heroHint: "Look closely before you choose."
       })
     ],
     items: [
       buildItem(
         "activity-shape-match",
         0,
-        "Which card matches the round badge?",
+        "Match the round badge.",
         {
           promptShape: "circle",
           promptColor: "#fb7185",
           options: [
             { id: "shape-1-a", shape: "circle", color: "#fb7185" },
             { id: "shape-1-b", shape: "square", color: "#60a5fa" },
-            { id: "shape-1-c", shape: "triangle", color: "#34d399" },
-            { id: "shape-1-d", shape: "star", color: "#facc15" }
+            { id: "shape-1-c", shape: "triangle", color: "#34d399" }
           ]
         },
         { correctOptionId: "shape-1-a" }
@@ -301,47 +311,29 @@ export const sampleActivities: ActivityDefinition[] = [
       buildItem(
         "activity-shape-match",
         1,
-        "Which card matches the triangle clue?",
+        "Match the star clue.",
         {
-          promptShape: "triangle",
-          promptColor: "#22c55e",
+          promptShape: "star",
+          promptColor: "#facc15",
           options: [
-            { id: "shape-2-a", shape: "square", color: "#fb7185" },
-            { id: "shape-2-b", shape: "triangle", color: "#22c55e" },
-            { id: "shape-2-c", shape: "circle", color: "#60a5fa" },
-            { id: "shape-2-d", shape: "star", color: "#facc15" }
+            { id: "shape-2-a", shape: "triangle", color: "#22c55e" },
+            { id: "shape-2-b", shape: "star", color: "#facc15" },
+            { id: "shape-2-c", shape: "square", color: "#38bdf8" }
           ]
         },
         { correctOptionId: "shape-2-b" }
-      ),
-      buildItem(
-        "activity-shape-match",
-        2,
-        "Find the sparkling star badge.",
-        {
-          promptShape: "star",
-          promptColor: "#f59e0b",
-          options: [
-            { id: "shape-3-a", shape: "triangle", color: "#22c55e" },
-            { id: "shape-3-b", shape: "star", color: "#f59e0b" },
-            { id: "shape-3-c", shape: "circle", color: "#f97316" },
-            { id: "shape-3-d", shape: "square", color: "#38bdf8" }
-          ]
-        },
-        { correctOptionId: "shape-3-b" },
-        2
       )
-    ],
-    isPublished: true
+    ]
   }),
   buildActivity({
     id: "activity-count-objects",
+    templateKey: "count-objects",
     title: "Count the Treasure",
     slug: "count-the-treasure",
-    type: "count-objects",
     ageMin: 4,
     ageMax: 8,
     difficulty: 1,
+    recommendedLevel: 2,
     instructionsText: "Count each object carefully and choose the matching number.",
     thumbnailUrl: "/images/themes/space-hero.svg",
     defaultThemeId: "space",
@@ -357,27 +349,11 @@ export const sampleActivities: ActivityDefinition[] = [
       }),
       buildVisualTheme("ocean", {
         cardTitle: "Ocean Pearl Count",
-        cardBlurb: "Count the shining pearls with Coral.",
+        cardBlurb: "Count shiny pearls with Coral.",
         heroTitle: "How many pearls are in Coral's reef?",
-        heroHint: "Bubbles help you count one by one.",
+        heroHint: "Count carefully from left to right.",
         objectEmoji: "🫧",
         objectLabel: "pearls"
-      }),
-      buildVisualTheme("robots", {
-        cardTitle: "Robot Bolt Count",
-        cardBlurb: "Help Bolt count bright energy orbs.",
-        heroTitle: "How many energy orbs power the robot room?",
-        heroHint: "Count left to right like a careful engineer.",
-        objectEmoji: "🔵",
-        objectLabel: "energy orbs"
-      }),
-      buildVisualTheme("animals", {
-        cardTitle: "Berry Basket Count",
-        cardBlurb: "Count berries for Pip's picnic basket.",
-        heroTitle: "How many berries did Pip collect?",
-        heroHint: "Touch each berry once before you choose.",
-        objectEmoji: "🍓",
-        objectLabel: "berries"
       })
     ],
     items: [
@@ -393,28 +369,21 @@ export const sampleActivities: ActivityDefinition[] = [
         1,
         "Count the next group.",
         { count: 6, options: [4, 5, 6, 7] },
-        { correctCount: 6 }
-      ),
-      buildItem(
-        "activity-count-objects",
-        2,
-        "Count the big group carefully.",
-        { count: 7, options: [5, 6, 7, 8] },
-        { correctCount: 7 },
+        { correctCount: 6 },
         2
       )
-    ],
-    isPublished: true
+    ]
   }),
   buildActivity({
     id: "activity-pattern-complete",
+    templateKey: "pattern-builder",
     title: "Pattern Parade",
     slug: "pattern-parade",
-    type: "pattern-complete",
     ageMin: 5,
     ageMax: 8,
     difficulty: 2,
-    instructionsText: "Look at the visual rhythm and choose what comes next.",
+    recommendedLevel: 3,
+    instructionsText: "Complete the pattern by dragging the right token into place.",
     thumbnailUrl: "/images/themes/nature-hero.svg",
     defaultThemeId: "nature",
     supportedThemeIds: ["nature", "animals", "robots"],
@@ -423,37 +392,13 @@ export const sampleActivities: ActivityDefinition[] = [
         cardTitle: "Garden Pattern Parade",
         cardBlurb: "Follow Bloom's color rhythm in the garden path.",
         heroTitle: "Which garden token comes next?",
-        heroHint: "The pattern repeats in a steady beat. Watch the order.",
-        shapeIcons: {
-          circle: "🌸",
-          square: "🪴",
-          triangle: "🍃",
-          star: "🦋"
-        }
-      }),
-      buildVisualTheme("animals", {
-        cardTitle: "Forest Pattern Parade",
-        cardBlurb: "Spot the repeating forest signs with Pip.",
-        heroTitle: "Which forest sign comes next?",
-        heroHint: "Look for the same sequence starting again.",
-        shapeIcons: {
-          circle: "🦊",
-          square: "🧺",
-          triangle: "🌲",
-          star: "🍄"
-        }
+        heroHint: "The pattern repeats in a steady beat."
       }),
       buildVisualTheme("robots", {
         cardTitle: "Robot Pattern Parade",
         cardBlurb: "Finish Bolt's blinking code pattern.",
         heroTitle: "Which code tile completes the pattern?",
-        heroHint: "The shapes blink in a loop. Find the next code tile.",
-        shapeIcons: {
-          circle: "🔵",
-          square: "⬜",
-          triangle: "🔺",
-          star: "✳️"
-        }
+        heroHint: "The shapes blink in a loop."
       })
     ],
     items: [
@@ -465,11 +410,10 @@ export const sampleActivities: ActivityDefinition[] = [
           sequence: [
             { id: "pattern-1-a", shape: "circle", color: "#fb7185" },
             { id: "pattern-1-b", shape: "square", color: "#38bdf8" },
-            { id: "pattern-1-c", shape: "circle", color: "#fb7185" },
-            { id: "pattern-1-d", shape: "square", color: "#38bdf8" }
+            { id: "pattern-1-c", shape: "circle", color: "#fb7185" }
           ],
           options: [
-            { id: "pattern-1-o1", shape: "circle", color: "#fb7185" },
+            { id: "pattern-1-o1", shape: "square", color: "#38bdf8" },
             { id: "pattern-1-o2", shape: "triangle", color: "#22c55e" },
             { id: "pattern-1-o3", shape: "star", color: "#facc15" }
           ]
@@ -479,56 +423,87 @@ export const sampleActivities: ActivityDefinition[] = [
       buildItem(
         "activity-pattern-complete",
         1,
-        "Follow the shape-color rhythm.",
+        "Spot the repeating visual rhythm.",
         {
           sequence: [
             { id: "pattern-2-a", shape: "triangle", color: "#22c55e" },
             { id: "pattern-2-b", shape: "triangle", color: "#22c55e" },
-            { id: "pattern-2-c", shape: "star", color: "#f59e0b" },
-            { id: "pattern-2-d", shape: "triangle", color: "#22c55e" },
-            { id: "pattern-2-e", shape: "triangle", color: "#22c55e" }
+            { id: "pattern-2-c", shape: "star", color: "#f59e0b" }
           ],
           options: [
-            { id: "pattern-2-o1", shape: "star", color: "#f59e0b" },
+            { id: "pattern-2-o1", shape: "triangle", color: "#22c55e" },
             { id: "pattern-2-o2", shape: "circle", color: "#f97316" },
             { id: "pattern-2-o3", shape: "square", color: "#60a5fa" }
           ]
         },
-        { correctOptionId: "pattern-2-o1" }
-      ),
+        { correctOptionId: "pattern-2-o1" },
+        2
+      )
+    ]
+  }),
+  buildActivity({
+    id: "activity-sort-game",
+    templateKey: "logic-sorting",
+    title: "Shape Sorting Safari",
+    slug: "shape-sorting-safari",
+    ageMin: 4,
+    ageMax: 7,
+    difficulty: 2,
+    recommendedLevel: 4,
+    instructionsText: "Sort each object into the right logic group.",
+    thumbnailUrl: "/images/themes/robots-hero.svg",
+    defaultThemeId: "robots",
+    supportedThemeIds: ["robots", "animals", "ocean"],
+    visualThemes: [
+      buildVisualTheme("robots", {
+        cardTitle: "Robot Sorting Lab",
+        cardBlurb: "Help Bolt sort every token into the right bucket.",
+        heroTitle: "Sort Bolt's tokens",
+        heroHint: "Pick a token, then send it to the correct home."
+      }),
+      buildVisualTheme("animals", {
+        cardTitle: "Forest Sorting Trail",
+        cardBlurb: "Guide Pip's tokens into matching camps.",
+        heroTitle: "Sort Pip's shape tokens",
+        heroHint: "Round and pointy tokens belong in different places."
+      })
+    ],
+    items: [
       buildItem(
-        "activity-pattern-complete",
-        2,
-        "Find the next shape in the sequence.",
+        "activity-sort-game",
+        0,
+        "Sort round and pointy shapes.",
         {
-          sequence: [
-            { id: "pattern-3-a", shape: "star", color: "#facc15" },
-            { id: "pattern-3-b", shape: "circle", color: "#fb7185" },
-            { id: "pattern-3-c", shape: "square", color: "#38bdf8" },
-            { id: "pattern-3-d", shape: "star", color: "#facc15" },
-            { id: "pattern-3-e", shape: "circle", color: "#fb7185" }
+          groups: [
+            { id: "sort-round", label: "Round", emoji: "🟠", color: "#fed7aa" },
+            { id: "sort-pointy", label: "Pointy", emoji: "⭐", color: "#dbeafe" }
           ],
           options: [
-            { id: "pattern-3-o1", shape: "square", color: "#38bdf8" },
-            { id: "pattern-3-o2", shape: "triangle", color: "#22c55e" },
-            { id: "pattern-3-o3", shape: "circle", color: "#fb7185" }
+            { id: "sort-1-o1", label: "Circle", emoji: "🟠", color: "#f97316", shape: "circle" },
+            { id: "sort-1-o2", label: "Star", emoji: "⭐", color: "#facc15", shape: "star" },
+            { id: "sort-1-o3", label: "Triangle", emoji: "🔺", color: "#22c55e", shape: "triangle" }
           ]
         },
-        { correctOptionId: "pattern-3-o1" },
-        3
+        {
+          correctGroups: {
+            "sort-1-o1": "sort-round",
+            "sort-1-o2": "sort-pointy",
+            "sort-1-o3": "sort-pointy"
+          }
+        }
       )
-    ],
-    isPublished: true
+    ]
   }),
   buildActivity({
     id: "activity-odd-one-out",
+    templateKey: "odd-one-out",
     title: "Odd One Out Picnic",
     slug: "odd-one-out-picnic",
-    type: "odd-one-out",
     ageMin: 5,
     ageMax: 8,
     difficulty: 2,
-    instructionsText: "Find the card that does not belong with the others.",
+    recommendedLevel: 4,
+    instructionsText: "Click the item that does not belong with the others.",
     thumbnailUrl: "/images/themes/animals-hero.svg",
     defaultThemeId: "animals",
     supportedThemeIds: ["animals", "ocean", "space"],
@@ -539,15 +514,9 @@ export const sampleActivities: ActivityDefinition[] = [
         heroTitle: "Which forest card is different?",
         heroHint: "Three cards belong together. One card is the surprise."
       }),
-      buildVisualTheme("ocean", {
-        cardTitle: "Ocean Odd One Out",
-        cardBlurb: "Find the sea card that does not match the reef group.",
-        heroTitle: "Which reef card is different?",
-        heroHint: "Look for the card that breaks the group idea."
-      }),
       buildVisualTheme("space", {
         cardTitle: "Space Odd One Out",
-        cardBlurb: "Find the odd card in Nova's space set.",
+        cardBlurb: "Find the odd card in Nova's set.",
         heroTitle: "Which space card is the odd one out?",
         heroHint: "Three cards fit the same set. One does not."
       })
@@ -566,48 +535,19 @@ export const sampleActivities: ActivityDefinition[] = [
           ]
         },
         { correctOptionId: "odd-1-d" }
-      ),
-      buildItem(
-        "activity-odd-one-out",
-        1,
-        "Three live in the sea. One does not.",
-        {
-          options: [
-            { id: "odd-2-a", label: "Fish", emoji: "🐟", color: "#dbeafe" },
-            { id: "odd-2-b", label: "Whale", emoji: "🐋", color: "#bfdbfe" },
-            { id: "odd-2-c", label: "Octopus", emoji: "🐙", color: "#fde68a" },
-            { id: "odd-2-d", label: "Bird", emoji: "🐦", color: "#ede9fe" }
-          ]
-        },
-        { correctOptionId: "odd-2-d" }
-      ),
-      buildItem(
-        "activity-odd-one-out",
-        2,
-        "Three are shapes with corners. One is smooth and round.",
-        {
-          options: [
-            { id: "odd-3-a", label: "Triangle", emoji: "🔺", color: "#dcfce7" },
-            { id: "odd-3-b", label: "Square", emoji: "🟦", color: "#dbeafe" },
-            { id: "odd-3-c", label: "Star", emoji: "⭐", color: "#fef3c7" },
-            { id: "odd-3-d", label: "Circle", emoji: "🟠", color: "#fed7aa" }
-          ]
-        },
-        { correctOptionId: "odd-3-d" },
-        3
       )
-    ],
-    isPublished: true
+    ]
   }),
   buildActivity({
     id: "activity-sequence-order",
+    templateKey: "sequence-ordering",
     title: "Story Sequence Trail",
     slug: "story-sequence-trail",
-    type: "sequence-order",
     ageMin: 5,
     ageMax: 9,
     difficulty: 2,
-    instructionsText: "Put the picture story cards in the correct order.",
+    recommendedLevel: 5,
+    instructionsText: "Arrange the story cards in the correct order.",
     thumbnailUrl: "/images/themes/nature-hero.svg",
     defaultThemeId: "nature",
     supportedThemeIds: ["nature", "animals", "space"],
@@ -618,17 +558,11 @@ export const sampleActivities: ActivityDefinition[] = [
         heroTitle: "What happens first, next, and last?",
         heroHint: "Build the story from beginning to end."
       }),
-      buildVisualTheme("animals", {
-        cardTitle: "Forest Story Trail",
-        cardBlurb: "Help Pip line up the story moments correctly.",
-        heroTitle: "Put Pip's story in order",
-        heroHint: "Think about what happens at the start before the end."
-      }),
       buildVisualTheme("space", {
         cardTitle: "Rocket Story Trail",
         cardBlurb: "Arrange Nova's journey cards in the right order.",
         heroTitle: "Put Nova's journey in order",
-        heroHint: "A trip starts before it lands. Build the story step by step."
+        heroHint: "A trip starts before it lands."
       })
     ],
     items: [
@@ -644,149 +578,179 @@ export const sampleActivities: ActivityDefinition[] = [
           ]
         },
         { correctOrderIds: ["seq-1-a", "seq-1-b", "seq-1-c"] }
-      ),
-      buildItem(
-        "activity-sequence-order",
-        1,
-        "Place the morning routine in order.",
-        {
-          steps: [
-            { id: "seq-2-a", label: "Wake up", emoji: "😴" },
-            { id: "seq-2-b", label: "Brush teeth", emoji: "🪥" },
-            { id: "seq-2-c", label: "Eat breakfast", emoji: "🥣" }
-          ]
-        },
-        { correctOrderIds: ["seq-2-a", "seq-2-b", "seq-2-c"] }
-      ),
-      buildItem(
-        "activity-sequence-order",
-        2,
-        "Place the rocket trip in order.",
-        {
-          steps: [
-            { id: "seq-3-a", label: "Get ready", emoji: "👩‍🚀" },
-            { id: "seq-3-b", label: "Launch", emoji: "🚀" },
-            { id: "seq-3-c", label: "Orbit", emoji: "🪐" },
-            { id: "seq-3-d", label: "Land", emoji: "🌍" }
-          ]
-        },
-        { correctOrderIds: ["seq-3-a", "seq-3-b", "seq-3-c", "seq-3-d"] },
-        3
       )
-    ],
-    isPublished: true
+    ]
   }),
   buildActivity({
-    id: "activity-sort-game",
-    title: "Shape Sorting Safari",
-    slug: "shape-sorting-safari",
-    type: "sort-game",
-    ageMin: 4,
-    ageMax: 7,
+    id: "activity-maze-path",
+    templateKey: "maze-direction",
+    title: "Moon Maze Mission",
+    slug: "moon-maze-mission",
+    ageMin: 5,
+    ageMax: 9,
     difficulty: 2,
-    instructionsText: "Sort each shape into the correct group bucket.",
-    thumbnailUrl: "/images/themes/robots-hero.svg",
-    defaultThemeId: "robots",
-    supportedThemeIds: ["robots", "animals", "ocean"],
+    recommendedLevel: 6,
+    instructionsText: "Trace a safe path through the maze to reach the rocket.",
+    thumbnailUrl: "/images/themes/space-hero.svg",
+    defaultThemeId: "space",
+    supportedThemeIds: ["space", "nature", "robots"],
     visualThemes: [
-      buildVisualTheme("robots", {
-        cardTitle: "Robot Sorting Lab",
-        cardBlurb: "Help Bolt sort every token into the right bucket.",
-        heroTitle: "Sort Bolt's tokens",
-        heroHint: "Choose a token, then send it to the correct group."
-      }),
-      buildVisualTheme("animals", {
-        cardTitle: "Forest Sorting Trail",
-        cardBlurb: "Guide Pip's shape tokens into matching camps.",
-        heroTitle: "Sort Pip's shape tokens",
-        heroHint: "Round and pointy tokens belong in different places."
-      }),
-      buildVisualTheme("ocean", {
-        cardTitle: "Ocean Sorting Reef",
-        cardBlurb: "Coral needs help sorting sea tokens by group.",
-        heroTitle: "Sort Coral's reef tokens",
-        heroHint: "Watch each group label, then place the token carefully."
+      buildVisualTheme("space", {
+        cardTitle: "Moon Maze Mission",
+        cardBlurb: "Trace a route across the moon with Nova.",
+        heroTitle: "Can you guide Nova to the rocket?",
+        heroHint: "Draw or tap the path one step at a time."
       })
     ],
     items: [
       buildItem(
-        "activity-sort-game",
+        "activity-maze-path",
         0,
-        "Sort round shapes and pointy shapes.",
+        "Reach the rocket without crossing blocked craters.",
         {
-          groups: [
-            { id: "sort-1-g1", label: "Round", emoji: "🟠", color: "#fed7aa" },
-            { id: "sort-1-g2", label: "Pointy", emoji: "⭐", color: "#dbeafe" }
+          gridSize: 5,
+          start: { row: 0, col: 0 },
+          goal: { row: 4, col: 4 },
+          blockedCells: [
+            { row: 1, col: 1 },
+            { row: 1, col: 2 },
+            { row: 2, col: 2 },
+            { row: 3, col: 1 }
           ],
-          options: [
-            { id: "sort-1-o1", label: "Circle", emoji: "🟠", color: "#f97316", shape: "circle" },
-            { id: "sort-1-o2", label: "Star", emoji: "⭐", color: "#facc15", shape: "star" },
-            { id: "sort-1-o3", label: "Circle", emoji: "🟠", color: "#fb7185", shape: "circle" },
-            { id: "sort-1-o4", label: "Triangle", emoji: "🔺", color: "#22c55e", shape: "triangle" }
-          ]
+          hintText: "Try moving across the top first."
         },
         {
-          correctGroups: {
-            "sort-1-o1": "sort-1-g1",
-            "sort-1-o2": "sort-1-g2",
-            "sort-1-o3": "sort-1-g1",
-            "sort-1-o4": "sort-1-g2"
-          }
+          correctPath: ["right", "right", "right", "right", "down", "down", "down", "down"]
         }
-      ),
-      buildItem(
-        "activity-sort-game",
-        1,
-        "Sort cool colors and warm colors.",
-        {
-          groups: [
-            { id: "sort-2-g1", label: "Warm", emoji: "☀️", color: "#fde68a" },
-            { id: "sort-2-g2", label: "Cool", emoji: "❄️", color: "#bfdbfe" }
-          ],
-          options: [
-            { id: "sort-2-o1", label: "Sun orange", emoji: "🟧", color: "#f97316" },
-            { id: "sort-2-o2", label: "Ocean blue", emoji: "🟦", color: "#3b82f6" },
-            { id: "sort-2-o3", label: "Leaf green", emoji: "🟩", color: "#22c55e" },
-            { id: "sort-2-o4", label: "Berry pink", emoji: "🩷", color: "#ec4899" }
-          ]
-        },
-        {
-          correctGroups: {
-            "sort-2-o1": "sort-2-g1",
-            "sort-2-o2": "sort-2-g2",
-            "sort-2-o3": "sort-2-g2",
-            "sort-2-o4": "sort-2-g1"
-          }
-        }
-      ),
-      buildItem(
-        "activity-sort-game",
-        2,
-        "Sort shapes into triangle and square homes.",
-        {
-          groups: [
-            { id: "sort-3-g1", label: "Triangles", emoji: "🔺", color: "#dcfce7" },
-            { id: "sort-3-g2", label: "Squares", emoji: "🟦", color: "#dbeafe" }
-          ],
-          options: [
-            { id: "sort-3-o1", label: "Triangle", emoji: "🔺", color: "#22c55e", shape: "triangle" },
-            { id: "sort-3-o2", label: "Square", emoji: "🟦", color: "#38bdf8", shape: "square" },
-            { id: "sort-3-o3", label: "Square", emoji: "🟦", color: "#6366f1", shape: "square" },
-            { id: "sort-3-o4", label: "Triangle", emoji: "🔺", color: "#f59e0b", shape: "triangle" }
-          ]
-        },
-        {
-          correctGroups: {
-            "sort-3-o1": "sort-3-g1",
-            "sort-3-o2": "sort-3-g2",
-            "sort-3-o3": "sort-3-g2",
-            "sort-3-o4": "sort-3-g1"
-          }
-        },
-        3
       )
+    ]
+  }),
+  buildActivity({
+    id: "activity-connect-logic",
+    templateKey: "connect-logic",
+    title: "Connect the Logic Garden",
+    slug: "connect-the-logic-garden",
+    ageMin: 6,
+    ageMax: 10,
+    difficulty: 2,
+    recommendedLevel: 7,
+    instructionsText: "Connect each item to the place where it belongs.",
+    thumbnailUrl: "/images/themes/nature-hero.svg",
+    defaultThemeId: "nature",
+    supportedThemeIds: ["nature", "animals", "ocean"],
+    visualThemes: [
+      buildVisualTheme("nature", {
+        cardTitle: "Connect the Logic Garden",
+        cardBlurb: "Match each helper to the place it belongs.",
+        heroTitle: "Which home matches each garden friend?",
+        heroHint: "Tap one friend, then tap the matching home."
+      })
     ],
-    isPublished: true
+    items: [
+      buildItem(
+        "activity-connect-logic",
+        0,
+        "Connect each helper to the right home.",
+        {
+          prompts: [
+            { id: "bee", label: "Bee", emoji: "🐝", color: "#fde68a" },
+            { id: "fish", label: "Fish", emoji: "🐟", color: "#bfdbfe" },
+            { id: "bird", label: "Bird", emoji: "🐦", color: "#ede9fe" }
+          ],
+          targets: [
+            { id: "flower", label: "Flower", emoji: "🌸", color: "#fecdd3" },
+            { id: "pond", label: "Pond", emoji: "🌊", color: "#dbeafe" },
+            { id: "nest", label: "Nest", emoji: "🪺", color: "#fed7aa" }
+          ]
+        },
+        {
+          correctMatches: {
+            bee: "flower",
+            fish: "pond",
+            bird: "nest"
+          }
+        }
+      )
+    ]
+  }),
+  buildActivity({
+    id: "activity-code-blocks",
+    templateKey: "code-blocks-thinking",
+    title: "Rocket Code Blocks",
+    slug: "rocket-code-blocks",
+    ageMin: 6,
+    ageMax: 10,
+    difficulty: 3,
+    recommendedLevel: 8,
+    instructionsText: "Arrange the action blocks in the correct order.",
+    thumbnailUrl: "/images/themes/robots-hero.svg",
+    defaultThemeId: "robots",
+    supportedThemeIds: ["robots", "space", "nature"],
+    visualThemes: [
+      buildVisualTheme("robots", {
+        cardTitle: "Rocket Code Blocks",
+        cardBlurb: "Help Bolt line up the launch plan.",
+        heroTitle: "Which order launches the rocket?",
+        heroHint: "Build the steps from first to last like a real program."
+      })
+    ],
+    items: [
+      buildItem(
+        "activity-code-blocks",
+        0,
+        "Build the rocket launch plan.",
+        {
+          prompt: "Put the code blocks in the right order.",
+          blocks: [
+            { id: "ready", label: "Get ready", emoji: "🧑‍🚀", color: "#dbeafe" },
+            { id: "count", label: "Count down", emoji: "3️⃣", color: "#fde68a" },
+            { id: "launch", label: "Launch", emoji: "🚀", color: "#fecaca" },
+            { id: "celebrate", label: "Celebrate", emoji: "🎉", color: "#ddd6fe" }
+          ]
+        },
+        {
+          correctOrderIds: ["ready", "count", "launch", "celebrate"]
+        }
+      )
+    ]
+  }),
+  buildActivity({
+    id: "activity-word-builder",
+    templateKey: "word-builder",
+    title: "Robot Word Builder",
+    slug: "robot-word-builder",
+    ageMin: 6,
+    ageMax: 9,
+    difficulty: 2,
+    recommendedLevel: 6,
+    instructionsText: "Type the missing word using the letter bank.",
+    thumbnailUrl: "/images/themes/robots-hero.svg",
+    defaultThemeId: "robots",
+    supportedThemeIds: ["robots", "space"],
+    visualThemes: [
+      buildVisualTheme("robots", {
+        cardTitle: "Robot Word Builder",
+        cardBlurb: "Help Bolt type the right idea word.",
+        heroTitle: "Which word completes Bolt's clue?",
+        heroHint: "Use the letters to spell the missing word."
+      })
+    ],
+    items: [
+      buildItem(
+        "activity-word-builder",
+        0,
+        "Complete the sentence.",
+        {
+          prompt: "A robot follows a ___ to know what to do next.",
+          placeholderLength: 4,
+          keyboard: ["P", "L", "A", "N", "R", "T"],
+          acceptableAnswers: ["PLAN"]
+        },
+        {
+          acceptableAnswers: ["PLAN"]
+        }
+      )
+    ]
   })
 ];
 
@@ -795,38 +759,83 @@ export const sampleAttempts: ActivityAttempt[] = [
     id: "attempt-1",
     childId: "child-1",
     activityId: "activity-shape-match",
+    activityType: "shape-match",
+    interactionType: "object-match",
+    learningAreas: ["pattern-recognition", "spatial-thinking"],
+    levelPlayed: 1,
+    difficultySnapshot: 1,
     score: 100,
+    successRate: 100,
+    correctAnswersCount: 2,
+    totalQuestions: 2,
     starsEarned: 3,
     completed: true,
     hintsUsed: 0,
     mistakesCount: 0,
     durationSeconds: 22,
+    explanationText:
+      "Matching shapes trains your brain to notice visual patterns. Coders use pattern noticing all the time.",
+    funFact: pickFunFact(activityTemplates[0], 0),
+    learningAreaScores: {
+      "pattern-recognition": 100,
+      "spatial-thinking": 100
+    },
     startedAt: "2026-03-09T08:10:00.000Z",
     finishedAt: "2026-03-09T08:10:22.000Z"
   },
   {
     id: "attempt-2",
     childId: "child-2",
-    activityId: "activity-count-objects",
+    activityId: "activity-code-blocks",
+    activityType: "code-blocks",
+    interactionType: "block-arrange",
+    learningAreas: ["sequencing", "problem-solving", "logic-reasoning"],
+    levelPlayed: 8,
+    difficultySnapshot: 3,
     score: 85,
+    successRate: 100,
+    correctAnswersCount: 1,
+    totalQuestions: 1,
     starsEarned: 2,
     completed: true,
     hintsUsed: 0,
     mistakesCount: 1,
     durationSeconds: 31,
+    explanationText: getActivityTemplate("code-blocks-thinking")?.defaultExplanationText,
+    funFact: pickFunFact(getActivityTemplate("code-blocks-thinking")!, 1),
+    learningAreaScores: {
+      sequencing: 100,
+      "problem-solving": 100,
+      "logic-reasoning": 100
+    },
     startedAt: "2026-03-09T08:14:00.000Z",
     finishedAt: "2026-03-09T08:14:31.000Z"
   },
   {
     id: "attempt-3",
     childId: "child-2",
-    activityId: "activity-pattern-complete",
+    activityId: "activity-maze-path",
+    activityType: "maze-path",
+    interactionType: "draw-trace",
+    learningAreas: ["spatial-thinking", "problem-solving", "sequencing"],
+    levelPlayed: 6,
+    difficultySnapshot: 2,
     score: 70,
+    successRate: 100,
+    correctAnswersCount: 1,
+    totalQuestions: 1,
     starsEarned: 1,
     completed: true,
     hintsUsed: 0,
     mistakesCount: 2,
     durationSeconds: 44,
+    explanationText: getActivityTemplate("maze-direction")?.defaultExplanationText,
+    funFact: pickFunFact(getActivityTemplate("maze-direction")!, 2),
+    learningAreaScores: {
+      "spatial-thinking": 100,
+      "problem-solving": 100,
+      sequencing: 100
+    },
     startedAt: "2026-03-09T08:17:00.000Z",
     finishedAt: "2026-03-09T08:17:44.000Z"
   }

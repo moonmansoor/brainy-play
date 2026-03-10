@@ -5,12 +5,12 @@ import { useEffect, useState } from "react";
 
 import { LinkButton } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
+import { getActivityInteractionLabel } from "@/features/activities/template-registry";
 import { resolveActiveChild } from "@/features/child-profiles/child-session-client";
 import { listChildAttempts } from "@/features/child-profiles/child-profiles-client";
 import { buildChildSnapshot, mergeAttempts } from "@/features/progress/progress-utils";
 import { sampleActivities, sampleBadges } from "@/lib/constants/sample-data";
 import {
-  formatDuration,
   getActivityTypeLabel,
   getChildThemePreferences,
   getThemePack
@@ -110,7 +110,7 @@ export function ParentDashboardClient({
         </div>
       </Panel>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Panel className="bg-gradient-to-br from-orange-100 to-white">
           <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
             Total stars
@@ -129,10 +129,18 @@ export function ParentDashboardClient({
         </Panel>
         <Panel className="bg-gradient-to-br from-emerald-100 to-white">
           <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
-            Time spent
+            Success rate
           </p>
           <p className="mt-3 font-display text-5xl font-semibold">
-            {snapshot.totalTimeLabel}
+            {snapshot.averageSuccessRate}%
+          </p>
+        </Panel>
+        <Panel className="bg-gradient-to-br from-violet-100 to-white">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+            Avg difficulty
+          </p>
+          <p className="mt-3 font-display text-5xl font-semibold">
+            {snapshot.averageDifficulty}
           </p>
         </Panel>
       </div>
@@ -154,12 +162,13 @@ export function ParentDashboardClient({
                   <div>
                     <p className="font-semibold">{activity?.title ?? "Activity"}</p>
                     <p className="text-sm text-slate-600">
-                      {activity ? getActivityTypeLabel(activity.type) : "Activity"}
+                      {activity ? getActivityTypeLabel(activity.type) : "Activity"} •{" "}
+                      {getActivityInteractionLabel(attempt.interactionType)}
                     </p>
                   </div>
                   <div className="text-right text-sm text-slate-600">
                     <p>{attempt.score} points</p>
-                    <p>{formatDuration(attempt.durationSeconds)}</p>
+                    <p>{attempt.successRate}% success</p>
                   </div>
                 </div>
               );
@@ -180,6 +189,26 @@ export function ParentDashboardClient({
                   <div className="h-3 rounded-full bg-slate-100">
                     <div
                       className="h-3 rounded-full bg-emerald-400"
+                      style={{ width: `${item.average}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel>
+            <h2 className="font-display text-3xl font-semibold">Learning areas</h2>
+            <div className="mt-5 grid gap-3">
+              {snapshot.learningAreaBreakdown.map((item) => (
+                <div key={item.area}>
+                  <div className="mb-2 flex items-center justify-between text-sm font-semibold">
+                    <span>{item.area}</span>
+                    <span>{item.average}%</span>
+                  </div>
+                  <div className="h-3 rounded-full bg-slate-100">
+                    <div
+                      className="h-3 rounded-full bg-sky-400"
                       style={{ width: `${item.average}%` }}
                     />
                   </div>
@@ -220,7 +249,7 @@ export function ParentDashboardClient({
                 <div key={activity.id} className="rounded-[1.5rem] bg-slate-50 p-4">
                   <p className="font-semibold">{activity.title}</p>
                   <p className="mt-1 text-sm text-slate-600">
-                    {getActivityTypeLabel(activity.type)}
+                    {getActivityTypeLabel(activity.type)} • Level {activity.recommendedLevel}
                   </p>
                 </div>
               ))}

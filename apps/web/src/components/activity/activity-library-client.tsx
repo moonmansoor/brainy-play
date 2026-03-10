@@ -55,6 +55,9 @@ export function ActivityLibraryClient({
         Number(isAgeMatch(right, childAge)) - Number(isAgeMatch(left, childAge));
       if (ageFitDelta !== 0) return ageFitDelta;
 
+      const levelDelta = left.recommendedLevel - right.recommendedLevel;
+      if (levelDelta !== 0) return levelDelta;
+
       return left.difficulty - right.difficulty;
     });
   }, [activities, activeChild]);
@@ -109,10 +112,9 @@ export function ActivityLibraryClient({
               {activeChild.displayName}&apos;s themed activity library
             </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
-              The library now loads multi-question activities from the content
-              layer, then prioritizes visual packs that match favorite interests
-              first. Each card can grow into richer question sets without
-              changing the child-facing experience.
+              The library now mixes template-based activities across drag, click,
+              tracing, typing, sorting, connecting, and early coding play. Cards
+              are ordered to fit age, favorite themes, and recommended level.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">

@@ -9,6 +9,7 @@ import { RewardStrip } from "@/components/activity/reward-strip";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { getActivityBySlug } from "@/features/activities/repository";
+import { getActivityInteractionLabel } from "@/features/activities/template-registry";
 import { resolveActiveChild } from "@/features/child-profiles/child-session-client";
 import { markChildLastLogin } from "@/features/child-profiles/child-profiles-client";
 import {
@@ -161,6 +162,9 @@ export function ActivityPlayerClient({
               <span className="rounded-full bg-white/75 px-4 py-2 text-slate-700">
                 Ages {activity.ageMin}-{activity.ageMax}
               </span>
+              <span className="rounded-full bg-white/75 px-4 py-2 text-slate-700">
+                {getActivityInteractionLabel(activity.interactionType)}
+              </span>
             </div>
           </div>
           <div className="relative min-h-56 overflow-hidden rounded-[2rem] border border-white/60 bg-white/40">
@@ -218,6 +222,25 @@ export function ActivityPlayerClient({
             </div>
           </div>
         </Panel>
+      ) : null}
+
+      {completion ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Panel className="bg-gradient-to-br from-sky-50 to-white">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-700">
+              What you learned
+            </p>
+            <p className="mt-3 text-sm leading-6 text-slate-700">
+              {activity.explanationText}
+            </p>
+          </Panel>
+          <Panel className="bg-gradient-to-br from-violet-50 to-white">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-violet-700">
+              Fun fact
+            </p>
+            <p className="mt-3 text-sm leading-6 text-slate-700">{activity.funFact}</p>
+          </Panel>
+        </div>
       ) : null}
 
       <div className="flex justify-end">

@@ -1,41 +1,47 @@
 # Brainy Play
 
-Brainy Play is a visual learning platform that helps kids aged **4–12** develop logical thinking through fun interactive activities.
+Brainy Play is a child-friendly interactive learning platform for ages **4-12**. It blends playful logic games, parent visibility, level progression, subscription gating, and an in-app reward loop built around **Brainy Coins**.
 
-The system uses images, shapes, numbers, and puzzles to train problem-solving skills in a playful way.
+## What the MVP supports
 
-## Example Activities
+- Interactive logic activities instead of quiz-style worksheets
+- Child profiles with tracked attempts and progress snapshots
+- Template-driven activity content so new games can be added without hardcoding every activity
+- Free access through **level 5**, with premium progression locked after that
+- **Brainy Coins** earned from successful play and level progress
+- Reward milestones such as **Mini Game**, **New Avatar**, and **Junior Coder Certificate**
 
-- Match shapes to shadows
-- Count objects and choose the correct number
-- Drag shapes into the correct group
-- Arrange images in logical sequence
-- Find the odd one out
-- Complete visual patterns
-- Memory and matching cards
-- Simple logic puzzles
-- Directional and maze challenges
+## Activity system
 
-## Tech Stack
+The platform now supports a broader set of interaction models:
 
-- Next.js
+- Drag and drop
+- Click selection
+- Drawing and tracing
+- Typing simple answers
+- Object matching
+- Sorting objects
+- Sequence arrangement
+- Connecting related elements
+- Early code-block ordering
+
+Current example activities include shape matching, pattern building, logic sorting, odd one out, sequence ordering, maze direction, connect the logic, code blocks thinking, and word building.
+
+## Subscription and rewards
+
+- Non-subscribed learners can play normally until the configurable free level cap.
+- After level 5, locked levels and premium activities remain visible but disabled.
+- Subscription state is modeled in the backend and exposed through a placeholder upgrade route that can later connect to Stripe or another provider.
+- Brainy Coins are awarded for correct answers, completed activities, and progression milestones.
+- Reward unlocks are data-driven and can expand without embedding milestone logic directly in UI components.
+
+## Tech stack
+
+- Next.js App Router
 - TypeScript
 - Tailwind CSS
-- Supabase (Auth + Database + Storage)
+- Supabase-ready Auth, database, and storage integration points
 
-## Goals
+## Status
 
-- Make learning logic fun for kids
-- Use beautiful visuals to keep children engaged
-- Support many activity types and questions
-- Allow parents to track children's progress
-
-## Target Users
-
-- Kids aged 4–12
-- Parents
-- Teachers (future)
-
-## Current Status
-
-MVP in development.
+MVP foundation with working activity engine, progression tracking, premium gating, and reward scaffolding.

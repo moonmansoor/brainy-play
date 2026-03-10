@@ -32,7 +32,30 @@ export function loadStoredAttempts() {
   if (!raw) return [] as ActivityAttempt[];
 
   try {
-    return JSON.parse(raw) as ActivityAttempt[];
+    return (JSON.parse(raw) as Partial<ActivityAttempt>[]).map((attempt) => ({
+      id: attempt.id ?? crypto.randomUUID(),
+      childId: attempt.childId ?? "",
+      activityId: attempt.activityId ?? "",
+      activityType: attempt.activityType ?? "shape-match",
+      interactionType: attempt.interactionType ?? "click-select",
+      learningAreas: attempt.learningAreas ?? ["pattern-recognition"],
+      levelPlayed: attempt.levelPlayed ?? 1,
+      difficultySnapshot: attempt.difficultySnapshot ?? 1,
+      score: attempt.score ?? 0,
+      successRate: attempt.successRate ?? 0,
+      correctAnswersCount: attempt.correctAnswersCount ?? 0,
+      totalQuestions: attempt.totalQuestions ?? 1,
+      starsEarned: attempt.starsEarned ?? 0,
+      completed: attempt.completed ?? false,
+      hintsUsed: attempt.hintsUsed ?? 0,
+      mistakesCount: attempt.mistakesCount ?? 0,
+      durationSeconds: attempt.durationSeconds ?? 0,
+      explanationText: attempt.explanationText,
+      funFact: attempt.funFact,
+      learningAreaScores: attempt.learningAreaScores ?? {},
+      startedAt: attempt.startedAt ?? new Date().toISOString(),
+      finishedAt: attempt.finishedAt ?? new Date().toISOString()
+    }));
   } catch {
     return [] as ActivityAttempt[];
   }
@@ -45,12 +68,23 @@ export function saveAttemptLocally(payload: ActivityCompletionPayload) {
     id: crypto.randomUUID(),
     childId: payload.childId,
     activityId: payload.activityId,
+    activityType: payload.activityType,
+    interactionType: payload.interactionType,
+    learningAreas: payload.learningAreas,
+    levelPlayed: payload.levelPlayed,
+    difficultySnapshot: payload.difficultySnapshot,
     score: payload.score,
+    successRate: payload.successRate,
+    correctAnswersCount: payload.correctAnswersCount,
+    totalQuestions: payload.totalQuestions,
     starsEarned: payload.starsEarned,
     completed: payload.completed,
     hintsUsed: payload.hintsUsed,
     mistakesCount: payload.mistakesCount,
     durationSeconds: payload.durationSeconds,
+    explanationText: payload.explanationText,
+    funFact: payload.funFact,
+    learningAreaScores: payload.learningAreaScores,
     startedAt: payload.startedAt,
     finishedAt: payload.finishedAt
   };

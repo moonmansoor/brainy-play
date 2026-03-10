@@ -43,12 +43,23 @@ export async function POST(request: Request) {
   const { error } = await supabase.from("activity_attempts").insert({
     child_id: parsed.data.childId,
     activity_id: parsed.data.activityId,
+    activity_type: parsed.data.activityType,
+    interaction_type: parsed.data.interactionType,
+    learning_areas: parsed.data.learningAreas,
+    level_played: parsed.data.levelPlayed,
+    difficulty_snapshot: parsed.data.difficultySnapshot,
     score: parsed.data.score,
+    success_rate: parsed.data.successRate,
+    correct_answers_count: parsed.data.correctAnswersCount,
+    total_questions: parsed.data.totalQuestions,
     stars_earned: parsed.data.starsEarned,
     completed: parsed.data.completed,
     hints_used: parsed.data.hintsUsed,
     mistakes_count: parsed.data.mistakesCount,
     duration_seconds: parsed.data.durationSeconds,
+    explanation_text: parsed.data.explanationText ?? null,
+    fun_fact: parsed.data.funFact ?? null,
+    learning_area_scores_json: parsed.data.learningAreaScores,
     started_at: parsed.data.startedAt,
     finished_at: parsed.data.finishedAt
   });
