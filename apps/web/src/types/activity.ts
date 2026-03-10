@@ -79,7 +79,6 @@ export type ShapeMatchConfig = {
   promptShape: ShapeKind;
   promptColor: string;
   options: ShapeOption[];
-  correctOptionId: string;
 };
 
 export type CountObjectsConfig = {

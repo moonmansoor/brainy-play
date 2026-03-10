@@ -42,14 +42,6 @@ export function ActivityLibraryClient({
     void hydrate();
   }, [childId]);
 
-  if (loading) {
-    return (
-      <Panel>
-        <p className="font-display text-2xl font-semibold">Loading activities...</p>
-      </Panel>
-    );
-  }
-
   const orderedActivities = useMemo(() => {
     if (!activeChild) return activities;
     const childAge = getChildAge(activeChild);
@@ -66,6 +58,14 @@ export function ActivityLibraryClient({
       return left.difficulty - right.difficulty;
     });
   }, [activities, activeChild]);
+
+  if (loading) {
+    return (
+      <Panel>
+        <p className="font-display text-2xl font-semibold">Loading activities...</p>
+      </Panel>
+    );
+  }
 
   if (!activeChild) {
     return (

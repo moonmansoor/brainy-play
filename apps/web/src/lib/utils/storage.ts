@@ -16,7 +16,9 @@ const CURRENT_PARENT_KEY = "cfb.current-parent-id";
 const LOCAL_CHILDREN_KEY = "cfb.local-children";
 
 type LocalParentAccount = ParentProfile & {
-  password: string;
+  password?: string;
+  passwordHash?: string;
+  passwordSalt?: string;
 };
 
 function canUseStorage() {
@@ -123,6 +125,12 @@ export function saveActiveChildId(childId: string) {
   if (!canUseStorage()) return childId;
   window.localStorage.setItem(ACTIVE_CHILD_KEY, childId);
   return childId;
+}
+
+export function clearActiveChildId() {
+  if (!canUseStorage()) return null;
+  window.localStorage.removeItem(ACTIVE_CHILD_KEY);
+  return null;
 }
 
 export function loadLocalParentAccounts() {

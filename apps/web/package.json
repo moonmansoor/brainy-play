@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "npm run test:types",
-    "test:types": "tsc --noEmit",
+    "test": "npm run test:e2e",
+    "typecheck": "tsc --noEmit",
+    "test:types": "npm run typecheck",
     "test:e2e": "playwright test"
   },
   "dependencies": {

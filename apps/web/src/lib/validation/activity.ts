@@ -33,7 +33,139 @@ export function validateActivityForm(input: unknown) {
   return baseActivitySchema.safeParse(input);
 }
 
-export function getDefaultSettingsForType(_type: ActivityType) {
+const isoDateTimeSchema = z.string().datetime({ offset: true });
+
+const jsonValueSchema: z.ZodType<
+  string | number | boolean | null | Record<string, unknown> | unknown[]
+> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema)
+  ])
+);
+
+const themeIdSchema = z.enum([
+  "animals",
+  "space",
+  "dinosaurs",
+  "ocean",
+  "robots",
+  "nature"
+]);
+
+const activityVisualThemeSchema = z.object({
+  themeId: themeIdSchema,
+  cardTitle: z.string().trim().min(1).max(120),
+  cardBlurb: z.string().trim().min(1).max(240),
+  heroTitle: z.string().trim().min(1).max(120),
+  heroHint: z.string().trim().min(1).max(280),
+  imageUrl: z.string().trim().min(1).max(500),
+  mascotMood: z.string().trim().min(1).max(160),
+  objectEmoji: z.string().trim().max(16).optional(),
+  objectLabel: z.string().trim().max(60).optional(),
+  shapeLabels: z
+    .object({
+      circle: z.string().trim().max(40).optional(),
+      square: z.string().trim().max(40).optional(),
+      triangle: z.string().trim().max(40).optional(),
+      star: z.string().trim().max(40).optional()
+    })
+    .optional(),
+  shapeIcons: z
+    .object({
+      circle: z.string().trim().max(16).optional(),
+      square: z.string().trim().max(16).optional(),
+      triangle: z.string().trim().max(16).optional(),
+      star: z.string().trim().max(16).optional()
+    })
+    .optional()
+});
+
+const activityItemSchema = z.object({
+  id: z.string().trim().min(1).max(120),
+  activityId: z.string().trim().min(1).max(120),
+  orderIndex: z.number().int().min(0).max(1000),
+  promptText: z.string().trim().max(500).optional(),
+  config: jsonValueSchema,
+  answer: jsonValueSchema,
+  assetRefs: z
+    .array(
+      z.object({
+        id: z.string().trim().min(1).max(120),
+        assetType: z.enum(["image", "audio"]),
+        label: z.string().trim().max(120).optional(),
+        fileUrl: z.string().trim().max(500).optional()
+      })
+    )
+    .max(100)
+    .optional(),
+  difficultyOverride: z.number().int().min(1).max(3).optional(),
+  createdAt: isoDateTimeSchema,
+  updatedAt: isoDateTimeSchema
+});
+
+export const activityDefinitionSchema = z
+  .object({
+    id: z.string().trim().min(1).max(120),
+    title: z.string().trim().min(3).max(120),
+    slug: z.string().trim().min(3).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    type: activityTypeSchema,
+    ageMin: z.number().int().min(4).max(12),
+    ageMax: z.number().int().min(4).max(12),
+    difficulty: z.number().int().min(1).max(3),
+    instructionsText: z.string().trim().min(6).max(500),
+    instructionsAudioUrl: z.string().trim().max(500).optional(),
+    thumbnailUrl: z.string().trim().max(500).optional(),
+    settingsConfig: z.record(z.string(), jsonValueSchema).optional(),
+    defaultThemeId: themeIdSchema,
+    supportedThemeIds: z.array(themeIdSchema).min(1).max(6),
+    visualThemes: z.array(activityVisualThemeSchema).min(1).max(12),
+    items: z.array(activityItemSchema).min(1).max(100),
+    isPublished: z.boolean(),
+    createdAt: isoDateTimeSchema,
+    updatedAt: isoDateTimeSchema
+  })
+  .refine((value) => value.ageMin <= value.ageMax, {
+    message: "Minimum age must be less than or equal to maximum age.",
+    path: ["ageMax"]
+  });
+
+export const activityAttemptSchema = z
+  .object({
+    childId: z.string().trim().min(1).max(120),
+    activityId: z.string().trim().min(1).max(120),
+    score: z.number().int().min(0).max(100),
+    starsEarned: z.number().int().min(0).max(3),
+    completed: z.boolean(),
+    hintsUsed: z.number().int().min(0).max(100),
+    mistakesCount: z.number().int().min(0).max(100),
+    durationSeconds: z.number().int().min(0).max(86400),
+    startedAt: isoDateTimeSchema,
+    finishedAt: isoDateTimeSchema
+  })
+  .refine(
+    (value) =>
+      new Date(value.finishedAt).getTime() >= new Date(value.startedAt).getTime(),
+    {
+      message: "Finish time must be after start time.",
+      path: ["finishedAt"]
+    }
+  );
+
+export function validateActivityDefinition(input: unknown) {
+  return activityDefinitionSchema.safeParse(input);
+}
+
+export function validateActivityAttempt(input: unknown) {
+  return activityAttemptSchema.safeParse(input);
+}
+
+export function getDefaultSettingsForType(type: ActivityType) {
+  void type;
   return JSON.stringify({}, null, 2);
 }
 

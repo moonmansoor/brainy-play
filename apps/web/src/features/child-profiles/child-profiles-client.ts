@@ -1,5 +1,9 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
+  validateChildProfileInput,
+  validateChildThemePreferences
+} from "@/lib/validation/child-profile";
+import {
   loadCurrentLocalParent,
   loadLocalChildProfiles,
   loadStoredAttempts,
@@ -92,18 +96,31 @@ function buildLocalChildProfile(
 
 function getScopedLocalChildren(parentId?: string) {
   const parent = loadCurrentLocalParent();
-  const resolvedParentId = parentId ?? parent?.id;
-
-  if (!resolvedParentId) {
+  if (!parent) {
     throw new Error("Parent login required.");
   }
 
+  if (parentId && parentId !== parent.id) {
+    throw new Error("Not authorized to access another parent profile.");
+  }
+
   return {
-    parentId: resolvedParentId,
+    parentId: parent.id,
     children: loadLocalChildProfiles().filter(
-      (child) => child.parentId === resolvedParentId
+      (child) => child.parentId === parent.id
     )
   };
+}
+
+function requireOwnedLocalChild(childId: string) {
+  const scoped = getScopedLocalChildren();
+  const child = scoped.children.find((item) => item.id === childId);
+
+  if (!child) {
+    throw new Error("Child profile not found.");
+  }
+
+  return child;
 }
 
 export async function listChildProfiles(parentId: string) {
@@ -126,10 +143,15 @@ export async function createChildProfile(
   parentId: string,
   input: ChildProfileInput
 ) {
+  const parsedInput = validateChildProfileInput(input);
+  if (!parsedInput.success) {
+    throw new Error(parsedInput.error.issues[0]?.message ?? "Child profile is invalid.");
+  }
+
   const supabase = getSupabaseBrowserClient();
   if (!supabase) {
     getScopedLocalChildren(parentId);
-    const nextChild = buildLocalChildProfile(parentId, input);
+    const nextChild = buildLocalChildProfile(parentId, parsedInput.data);
     saveLocalChildProfiles([...loadLocalChildProfiles(), nextChild]);
     return nextChild;
   }
@@ -138,17 +160,17 @@ export async function createChildProfile(
     .from("children")
     .insert({
       parent_id: parentId,
-      display_name: input.displayName,
-      birth_date: input.birthDate,
-      school_name: input.schoolName ?? null,
-      school_standard: input.schoolStandard ?? null,
-      avatar_url: input.avatarUrl ?? null,
-      favorite_themes: input.themePreferences?.favoriteThemes ?? [],
-      favorite_color: input.themePreferences?.favoriteColor ?? null,
+      display_name: parsedInput.data.displayName,
+      birth_date: parsedInput.data.birthDate,
+      school_name: parsedInput.data.schoolName ?? null,
+      school_standard: parsedInput.data.schoolStandard ?? null,
+      avatar_url: parsedInput.data.avatarUrl ?? null,
+      favorite_themes: parsedInput.data.themePreferences?.favoriteThemes ?? [],
+      favorite_color: parsedInput.data.themePreferences?.favoriteColor ?? null,
       preferred_reward_style:
-        input.themePreferences?.preferredRewardStyle ?? null,
+        parsedInput.data.themePreferences?.preferredRewardStyle ?? null,
       preferred_avatar_style:
-        input.themePreferences?.preferredAvatarStyle ?? null,
+        parsedInput.data.themePreferences?.preferredAvatarStyle ?? null,
       last_login_at: null
     })
     .select("*")
@@ -162,23 +184,21 @@ export async function updateChildProfilePreferences(
   childId: string,
   preferences: ChildThemePreferences
 ) {
+  const parsedPreferences = validateChildThemePreferences(preferences);
+  if (!parsedPreferences.success) {
+    throw new Error(
+      parsedPreferences.error.issues[0]?.message ?? "Theme preferences are invalid."
+    );
+  }
+
   const supabase = getSupabaseBrowserClient();
   if (!supabase) {
-    const parent = loadCurrentLocalParent();
-    if (!parent) throw new Error("Parent login required.");
-
     const children = loadLocalChildProfiles();
-    const child = children.find(
-      (item) => item.id === childId && item.parentId === parent.id
-    );
-
-    if (!child) {
-      throw new Error("Child profile not found.");
-    }
+    const child = requireOwnedLocalChild(childId);
 
     const updated: ChildProfile = {
       ...child,
-      themePreferences: buildThemePreferences(preferences),
+      themePreferences: buildThemePreferences(parsedPreferences.data),
       updatedAt: new Date().toISOString()
     };
 
@@ -192,10 +212,10 @@ export async function updateChildProfilePreferences(
   const { data, error } = await supabase
     .from("children")
     .update({
-      favorite_themes: preferences.favoriteThemes,
-      favorite_color: preferences.favoriteColor ?? null,
-      preferred_reward_style: preferences.preferredRewardStyle ?? null,
-      preferred_avatar_style: preferences.preferredAvatarStyle ?? null
+      favorite_themes: parsedPreferences.data.favoriteThemes,
+      favorite_color: parsedPreferences.data.favoriteColor ?? null,
+      preferred_reward_style: parsedPreferences.data.preferredRewardStyle ?? null,
+      preferred_avatar_style: parsedPreferences.data.preferredAvatarStyle ?? null
     })
     .eq("id", childId)
     .select("*")
@@ -208,18 +228,9 @@ export async function updateChildProfilePreferences(
 export async function markChildLastLogin(childId: string) {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) {
-    const parent = loadCurrentLocalParent();
-    if (!parent) throw new Error("Parent login required.");
-
     const timestamp = new Date().toISOString();
     const children = loadLocalChildProfiles();
-    const child = children.find(
-      (item) => item.id === childId && item.parentId === parent.id
-    );
-
-    if (!child) {
-      throw new Error("Child profile not found.");
-    }
+    const child = requireOwnedLocalChild(childId);
 
     const updated: ChildProfile = {
       ...child,
@@ -251,18 +262,7 @@ export async function markChildLastLogin(childId: string) {
 export async function getChildProfile(childId: string) {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) {
-    const parent = loadCurrentLocalParent();
-    if (!parent) throw new Error("Parent login required.");
-
-    const child = loadLocalChildProfiles().find(
-      (item) => item.id === childId && item.parentId === parent.id
-    );
-
-    if (!child) {
-      throw new Error("Child profile not found.");
-    }
-
-    return child;
+    return requireOwnedLocalChild(childId);
   }
 
   const { data, error } = await supabase
@@ -278,6 +278,7 @@ export async function getChildProfile(childId: string) {
 export async function listChildAttempts(childId: string) {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) {
+    requireOwnedLocalChild(childId);
     return loadStoredAttempts()
       .filter((attempt) => attempt.childId === childId)
       .sort((left, right) => right.finishedAt.localeCompare(left.finishedAt));

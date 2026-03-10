@@ -195,7 +195,7 @@ export function AdminActivityManager() {
         setMessage(
           result.persisted
             ? "Saved locally and synced to Supabase."
-            : "Saved locally. Add Supabase env vars to sync."
+            : result.error || "Saved locally. Add Supabase env vars to sync."
         );
       } catch {
         setMessage("Saved locally. Add Supabase env vars to sync.");
