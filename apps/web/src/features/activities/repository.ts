@@ -26,13 +26,24 @@ function mapActivityItem(row: ActivityItemRow): ActivityItem {
 function mapActivity(row: ActivityRow, items: ActivityItem[]): ActivityDefinition {
   return {
     id: row.id,
+    templateId: row.template_id ?? `template-${row.type}`,
+    templateKey: (row.config_json as { templateKey?: ActivityDefinition["templateKey"] })?.templateKey ?? (row.type as ActivityDefinition["templateKey"]),
     title: row.title,
     slug: row.slug,
     type: row.type as ActivityDefinition["type"],
+    interactionType: row.interaction_type as ActivityDefinition["interactionType"],
     ageMin: row.age_min,
     ageMax: row.age_max,
     difficulty: row.difficulty as ActivityDefinition["difficulty"],
+    recommendedLevel: row.recommended_level,
+    learningAreas: (row.learning_areas as ActivityDefinition["learningAreas"]) ?? [
+      "pattern-recognition"
+    ],
     instructionsText: row.instructions_text,
+    explanationText:
+      row.explanation_text ??
+      "Great job learning a new thinking skill with this activity.",
+    funFact: row.fun_fact ?? "Did you know? Practice makes your brain stronger.",
     instructionsAudioUrl: row.instructions_audio_url ?? undefined,
     thumbnailUrl: row.thumbnail_url ?? undefined,
     settingsConfig: (row.config_json as ActivityDefinition["settingsConfig"]) ?? {},

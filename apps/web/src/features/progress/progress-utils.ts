@@ -8,7 +8,8 @@ import {
 import {
   ActivityAttempt,
   ActivityDefinition,
-  ChildProfile
+  ChildProfile,
+  LearningArea
 } from "@/types/activity";
 
 export function mergeAttempts(extraAttempts: ActivityAttempt[]) {
@@ -20,6 +21,30 @@ export function mergeAttempts(extraAttempts: ActivityAttempt[]) {
 
 export function getAttemptsForChild(attempts: ActivityAttempt[], childId: string) {
   return attempts.filter((attempt) => attempt.childId === childId);
+}
+
+function buildLearningAreaBreakdown(attempts: ActivityAttempt[]) {
+  const scoreMap = new Map<LearningArea, number[]>();
+
+  for (const attempt of attempts) {
+    for (const area of attempt.learningAreas) {
+      const current = scoreMap.get(area) ?? [];
+      const score =
+        attempt.learningAreaScores[area] ??
+        attempt.successRate ??
+        attempt.score;
+      scoreMap.set(area, [...current, score]);
+    }
+  }
+
+  return Array.from(scoreMap.entries())
+    .map(([area, scores]) => ({
+      area,
+      average: Math.round(
+        scores.reduce((sum, value) => sum + value, 0) / scores.length
+      )
+    }))
+    .sort((left, right) => right.average - left.average);
 }
 
 export function buildChildSnapshot(
@@ -37,6 +62,22 @@ export function buildChildSnapshot(
     (sum, attempt) => sum + attempt.durationSeconds,
     0
   );
+  const averageSuccessRate = childAttempts.length
+    ? Math.round(
+        childAttempts.reduce((sum, attempt) => sum + attempt.successRate, 0) /
+          childAttempts.length
+      )
+    : 0;
+  const averageDifficulty = childAttempts.length
+    ? Number(
+        (
+          childAttempts.reduce(
+            (sum, attempt) => sum + attempt.difficultySnapshot,
+            0
+          ) / childAttempts.length
+        ).toFixed(1)
+      )
+    : 0;
 
   const activityTypeScores = activities.map((activity) => {
     const related = childAttempts.filter(
@@ -66,6 +107,8 @@ export function buildChildSnapshot(
     .sort((left, right) => left.average - right.average)
     .slice(0, 2);
 
+  const learningAreaBreakdown = buildLearningAreaBreakdown(childAttempts);
+
   const recommended = activities
     .filter(
       (activity) =>
@@ -73,17 +116,22 @@ export function buildChildSnapshot(
         childAge <= activity.ageMax &&
         !childAttempts.some((attempt) => attempt.activityId === activity.id)
     )
-    .sort((left, right) => getThemeMatchScore(right, child) - getThemeMatchScore(left, child))
-    .slice(0, 2);
+    .sort(
+      (left, right) => getThemeMatchScore(right, child) - getThemeMatchScore(left, child)
+    )
+    .slice(0, 3);
 
   return {
     child,
     totalAttempts: childAttempts.length,
     totalStars,
     totalTimeLabel: formatDuration(totalTimeSeconds),
+    averageSuccessRate,
+    averageDifficulty,
     recentAttempts: childAttempts.slice(0, 4),
     strengths,
     weakAreas,
+    learningAreaBreakdown,
     recommended
   };
 }

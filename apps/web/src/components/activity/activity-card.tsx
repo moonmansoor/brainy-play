@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Panel } from "@/components/ui/panel";
+import { getActivityInteractionLabel } from "@/features/activities/template-registry";
 import {
   formatDifficulty,
   getActivityTypeLabel,
@@ -71,6 +72,12 @@ export function ActivityCard({
             </span>
             <span className="rounded-full bg-sky-100 px-3 py-2 text-sky-700">
               {activity.items.length} rounds
+            </span>
+            <span className="rounded-full bg-violet-100 px-3 py-2 text-violet-700">
+              {getActivityInteractionLabel(activity.interactionType)}
+            </span>
+            <span className="rounded-full bg-amber-100 px-3 py-2 text-amber-700">
+              Level {activity.recommendedLevel}
             </span>
             <span
               className={`rounded-full px-3 py-2 ${

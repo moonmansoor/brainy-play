@@ -57,16 +57,25 @@ export async function POST(request: Request) {
   const { error } = await supabase.from("activities").upsert(
     {
       id: parsed.data.id,
+      template_id: parsed.data.templateId,
       title: parsed.data.title,
       slug: parsed.data.slug,
       type: parsed.data.type,
+      interaction_type: parsed.data.interactionType,
       age_min: parsed.data.ageMin,
       age_max: parsed.data.ageMax,
       difficulty: parsed.data.difficulty,
+      recommended_level: parsed.data.recommendedLevel,
+      learning_areas: parsed.data.learningAreas,
       instructions_text: parsed.data.instructionsText,
+      explanation_text: parsed.data.explanationText,
+      fun_fact: parsed.data.funFact,
       instructions_audio_url: parsed.data.instructionsAudioUrl ?? null,
       thumbnail_url: parsed.data.thumbnailUrl ?? null,
-      config_json: parsed.data.settingsConfig ?? {},
+      config_json: {
+        ...(parsed.data.settingsConfig ?? {}),
+        templateKey: parsed.data.templateKey
+      },
       default_theme_id: parsed.data.defaultThemeId,
       theme_ids: parsed.data.supportedThemeIds,
       visual_config_json: parsed.data.visualThemes,

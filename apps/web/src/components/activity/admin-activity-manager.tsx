@@ -4,12 +4,18 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
+import {
+  activityTemplates,
+  getActivityTemplate,
+  getActivityTemplateById
+} from "@/features/activities/template-registry";
 import { listActivities, mergeActivities } from "@/features/activities/repository";
 import { sampleActivities, themePacks } from "@/lib/constants/sample-data";
 import { loadStoredActivities, saveActivityLocally } from "@/lib/utils/storage";
 import {
   getDefaultItemsForType,
   getDefaultSettingsForType,
+  learningAreaOptions,
   validateActivityForm
 } from "@/lib/validation/activity";
 import { ActivityDefinition, ActivityItem, ActivityType } from "@/types/activity";
@@ -20,8 +26,16 @@ const typeOptions: ActivityType[] = [
   "pattern-complete",
   "odd-one-out",
   "sequence-order",
-  "sort-game"
+  "sort-game",
+  "maze-path",
+  "connect-logic",
+  "code-blocks",
+  "word-builder"
 ];
+
+function getTemplateForType(type: ActivityType) {
+  return activityTemplates.find((template) => template.activityType === type) ?? null;
+}
 
 function buildFallbackVisuals(type: ActivityType): ActivityDefinition["visualThemes"] {
   const theme = themePacks[0];
@@ -56,14 +70,33 @@ function serializeItemsForForm(activity?: ActivityDefinition) {
 }
 
 function toFormState(activity?: ActivityDefinition) {
+  const template =
+    (activity?.templateId ? getActivityTemplateById(activity.templateId) : null) ??
+    (activity?.templateKey ? getActivityTemplate(activity.templateKey) : null) ??
+    getTemplateForType(activity?.type ?? "shape-match");
+
   return {
     title: activity?.title ?? "",
     slug: activity?.slug ?? "",
     type: activity?.type ?? ("shape-match" as ActivityType),
+    interactionType: activity?.interactionType ?? template?.interactionType ?? "click-select",
+    recommendedLevel:
+      activity?.recommendedLevel ?? template?.difficultyRules.minLevel ?? 1,
     ageMin: activity?.ageMin ?? 4,
     ageMax: activity?.ageMax ?? 6,
     difficulty: activity?.difficulty ?? 1,
-    instructionsText: activity?.instructionsText ?? "",
+    instructionsText: activity?.instructionsText ?? template?.description ?? "",
+    explanationText:
+      activity?.explanationText ??
+      template?.defaultExplanationText ??
+      "Great job learning a new thinking skill.",
+    funFact:
+      activity?.funFact ??
+      template?.factPool[0] ??
+      "Did you know? Learning games make your brain stronger.",
+    learningAreas: (activity?.learningAreas ?? template?.learningAreas ?? [
+      "pattern-recognition"
+    ]).join(", "),
     isPublished: activity?.isPublished ?? true,
     settingsConfig: JSON.stringify(activity?.settingsConfig ?? {}, null, 2),
     itemsConfig: serializeItemsForForm(activity)
@@ -123,6 +156,13 @@ export function AdminActivityManager() {
       return;
     }
 
+    const template = getTemplateForType(parsed.data.type);
+
+    if (!template) {
+      setMessage("Select an activity type with a registered template.");
+      return;
+    }
+
     let settingsConfig: ActivityDefinition["settingsConfig"];
     let rawItems: Array<{
       id?: string;
@@ -164,19 +204,36 @@ export function AdminActivityManager() {
 
     const nextActivity: ActivityDefinition = {
       id: activityId,
+      templateId: template.id,
+      templateKey: template.key,
       title: parsed.data.title,
       slug: parsed.data.slug,
       type: parsed.data.type,
+      interactionType: template.interactionType,
       ageMin: parsed.data.ageMin,
       ageMax: parsed.data.ageMax,
       difficulty: parsed.data.difficulty as ActivityDefinition["difficulty"],
+      recommendedLevel: parsed.data.recommendedLevel,
+      learningAreas:
+        parsed.data.learningAreas.length > 0
+          ? template.learningAreas.filter((area) =>
+              parsed.data.learningAreas.includes(area)
+            ).length > 0
+            ? template.learningAreas.filter((area) =>
+                parsed.data.learningAreas.includes(area)
+              )
+            : template.learningAreas
+          : template.learningAreas,
       instructionsText: parsed.data.instructionsText,
+      explanationText: parsed.data.explanationText,
+      funFact: parsed.data.funFact,
       isPublished: parsed.data.isPublished,
       thumbnailUrl: selectedActivity?.thumbnailUrl,
       settingsConfig,
       items,
-      defaultThemeId: selectedActivity?.defaultThemeId ?? "animals",
-      supportedThemeIds: selectedActivity?.supportedThemeIds ?? ["animals"],
+      defaultThemeId: selectedActivity?.defaultThemeId ?? template.supportedThemes[0],
+      supportedThemeIds:
+        selectedActivity?.supportedThemeIds ?? template.supportedThemes,
       visualThemes:
         selectedActivity?.visualThemes ?? buildFallbackVisuals(parsed.data.type),
       createdAt: selectedActivity?.createdAt ?? now,
@@ -200,6 +257,23 @@ export function AdminActivityManager() {
       } catch {
         setMessage("Saved locally. Add Supabase env vars to sync.");
       }
+    });
+  }
+
+  function toggleLearningArea(area: (typeof learningAreaOptions)[number]) {
+    setFormState((current) => {
+      const selected = current.learningAreas
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+      const next = selected.includes(area)
+        ? selected.filter((item) => item !== area)
+        : [...selected, area];
+
+      return {
+        ...current,
+        learningAreas: next.join(", ")
+      };
     });
   }
 
@@ -238,7 +312,8 @@ export function AdminActivityManager() {
             >
               <p className="font-semibold">{activity.title}</p>
               <p className="text-sm text-slate-600">
-                {activity.type} • {activity.items.length} items
+                {activity.type} • Level {activity.recommendedLevel} • {activity.items.length}{" "}
+                items
               </p>
             </button>
           ))}
@@ -277,9 +352,18 @@ export function AdminActivityManager() {
               value={formState.type}
               onChange={(event) => {
                 const type = event.target.value as ActivityType;
+                const template = getTemplateForType(type);
                 setFormState((current) => ({
                   ...current,
                   type,
+                  interactionType: template?.interactionType ?? current.interactionType,
+                  recommendedLevel:
+                    template?.difficultyRules.minLevel ?? current.recommendedLevel,
+                  explanationText:
+                    template?.defaultExplanationText ?? current.explanationText,
+                  funFact: template?.factPool[0] ?? current.funFact,
+                  learningAreas:
+                    template?.learningAreas.join(", ") ?? current.learningAreas,
                   settingsConfig: getDefaultSettingsForType(type),
                   itemsConfig: getDefaultItemsForType(type)
                 }));
@@ -291,6 +375,14 @@ export function AdminActivityManager() {
                 </option>
               ))}
             </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold">
+            Interaction
+            <input
+              className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-slate-600"
+              value={formState.interactionType}
+              readOnly
+            />
           </label>
           <label className="grid gap-2 text-sm font-semibold">
             Difficulty
@@ -308,6 +400,22 @@ export function AdminActivityManager() {
               <option value={2}>2</option>
               <option value={3}>3</option>
             </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold">
+            Recommended level
+            <input
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+              type="number"
+              min={1}
+              max={20}
+              value={formState.recommendedLevel}
+              onChange={(event) =>
+                setFormState((current) => ({
+                  ...current,
+                  recommendedLevel: Number(event.target.value)
+                }))
+              }
+            />
           </label>
           <label className="grid gap-2 text-sm font-semibold">
             Age min
@@ -355,6 +463,59 @@ export function AdminActivityManager() {
             />
           </label>
           <label className="md:col-span-2 grid gap-2 text-sm font-semibold">
+            Learning explanation
+            <textarea
+              className="min-h-24 rounded-2xl border border-slate-200 bg-white px-4 py-3"
+              value={formState.explanationText}
+              onChange={(event) =>
+                setFormState((current) => ({
+                  ...current,
+                  explanationText: event.target.value
+                }))
+              }
+            />
+          </label>
+          <label className="md:col-span-2 grid gap-2 text-sm font-semibold">
+            Fun fact
+            <textarea
+              className="min-h-24 rounded-2xl border border-slate-200 bg-white px-4 py-3"
+              value={formState.funFact}
+              onChange={(event) =>
+                setFormState((current) => ({
+                  ...current,
+                  funFact: event.target.value
+                }))
+              }
+            />
+          </label>
+          <div className="md:col-span-2 grid gap-3 text-sm font-semibold">
+            <p>Learning areas</p>
+            <div className="flex flex-wrap gap-2">
+              {learningAreaOptions.map((area) => {
+                const isSelected = formState.learningAreas
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter(Boolean)
+                  .includes(area);
+
+                return (
+                  <button
+                    key={area}
+                    type="button"
+                    onClick={() => toggleLearningArea(area)}
+                    className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.18em] ${
+                      isSelected
+                        ? "bg-orange-100 text-orange-900"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {area}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <label className="md:col-span-2 grid gap-2 text-sm font-semibold">
             Activity settings JSON
             <textarea
               className="min-h-32 rounded-2xl border border-slate-200 bg-slate-950 px-4 py-3 font-mono text-sm text-slate-50"
@@ -381,9 +542,9 @@ export function AdminActivityManager() {
             />
           </label>
           <div className="md:col-span-2 rounded-[1.5rem] bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-            Activity logic stays in code, but each activity now stores a set of
-            ordered question items. That keeps the MVP simple while making future
-            content creation much easier to scale.
+            Activities are now template-driven. The template decides interaction style,
+            learning goals, and level range, while the JSON items define the playable
+            prompts for this specific activity.
           </div>
           <label className="flex items-center gap-3 text-sm font-semibold">
             <input

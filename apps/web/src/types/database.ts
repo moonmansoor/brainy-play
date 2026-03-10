@@ -67,16 +67,56 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["children"]["Insert"]>;
         Relationships: [];
       };
+      activity_templates: {
+        Row: {
+          id: string;
+          template_key: string;
+          activity_type: string;
+          interaction_type: string;
+          title: string;
+          description: string;
+          learning_areas: string[] | null;
+          difficulty_rules_json: Json;
+          generation_rules_json: Json;
+          explanation_text: string;
+          fact_pool_json: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          template_key: string;
+          activity_type: string;
+          interaction_type: string;
+          title: string;
+          description: string;
+          learning_areas?: string[] | null;
+          difficulty_rules_json?: Json;
+          generation_rules_json?: Json;
+          explanation_text: string;
+          fact_pool_json?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["activity_templates"]["Insert"]>;
+        Relationships: [];
+      };
       activities: {
         Row: {
           id: string;
+          template_id: string | null;
           title: string;
           slug: string;
           type: string;
+          interaction_type: string;
           age_min: number;
           age_max: number;
           difficulty: number;
+          recommended_level: number;
+          learning_areas: string[] | null;
           instructions_text: string;
+          explanation_text: string | null;
+          fun_fact: string | null;
           instructions_audio_url: string | null;
           thumbnail_url: string | null;
           config_json: Json;
@@ -89,13 +129,19 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          template_id?: string | null;
           title: string;
           slug: string;
           type: string;
+          interaction_type: string;
           age_min: number;
           age_max: number;
           difficulty: number;
+          recommended_level?: number;
+          learning_areas?: string[] | null;
           instructions_text: string;
+          explanation_text?: string | null;
+          fun_fact?: string | null;
           instructions_audio_url?: string | null;
           thumbnail_url?: string | null;
           config_json: Json;
@@ -142,12 +188,23 @@ export type Database = {
           id: string;
           child_id: string;
           activity_id: string;
+          activity_type: string;
+          interaction_type: string;
+          learning_areas: string[] | null;
+          level_played: number;
+          difficulty_snapshot: number;
           score: number;
+          success_rate: number;
+          correct_answers_count: number;
+          total_questions: number;
           stars_earned: number;
           completed: boolean;
           hints_used: number;
           mistakes_count: number;
           duration_seconds: number;
+          explanation_text: string | null;
+          fun_fact: string | null;
+          learning_area_scores_json: Json;
           started_at: string;
           finished_at: string;
         };
@@ -155,18 +212,63 @@ export type Database = {
           id?: string;
           child_id: string;
           activity_id: string;
+          activity_type: string;
+          interaction_type: string;
+          learning_areas?: string[] | null;
+          level_played?: number;
+          difficulty_snapshot?: number;
           score: number;
+          success_rate?: number;
+          correct_answers_count?: number;
+          total_questions?: number;
           stars_earned: number;
           completed: boolean;
           hints_used?: number;
           mistakes_count?: number;
           duration_seconds: number;
+          explanation_text?: string | null;
+          fun_fact?: string | null;
+          learning_area_scores_json?: Json;
           started_at: string;
           finished_at: string;
         };
         Update: Partial<
           Database["public"]["Tables"]["activity_attempts"]["Insert"]
         >;
+        Relationships: [];
+      };
+      badges: {
+        Row: {
+          id: string;
+          code: string;
+          title: string;
+          description: string;
+          image_url: string | null;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          title: string;
+          description: string;
+          image_url?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["badges"]["Insert"]>;
+        Relationships: [];
+      };
+      child_badges: {
+        Row: {
+          id: string;
+          child_id: string;
+          badge_id: string;
+          awarded_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          badge_id: string;
+          awarded_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_badges"]["Insert"]>;
         Relationships: [];
       };
     };

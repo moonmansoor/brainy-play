@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ActivityType } from "@/types/activity";
+import { ActivityType, InteractionType, LearningArea } from "@/types/activity";
 
 const activityTypeSchema = z.enum([
   "shape-match",
@@ -11,17 +11,55 @@ const activityTypeSchema = z.enum([
   "sequence-order",
   "memory-cards",
   "logic-game",
-  "maze-path"
+  "maze-path",
+  "connect-logic",
+  "code-blocks",
+  "word-builder"
+]);
+
+const interactionTypeSchema = z.enum([
+  "drag-drop",
+  "click-select",
+  "draw-trace",
+  "type-answer",
+  "object-match",
+  "sort",
+  "sequence",
+  "connect",
+  "block-arrange"
+]);
+
+const learningAreaSchema = z.enum([
+  "pattern-recognition",
+  "logic-reasoning",
+  "spatial-thinking",
+  "memory",
+  "problem-solving",
+  "sequencing",
+  "classification"
 ]);
 
 const baseActivitySchema = z.object({
   title: z.string().min(3),
   slug: z.string().min(3),
   type: activityTypeSchema,
+  interactionType: interactionTypeSchema.default("click-select"),
+  recommendedLevel: z.coerce.number().int().min(1).max(20).default(1),
   ageMin: z.coerce.number().int().min(4).max(12),
   ageMax: z.coerce.number().int().min(4).max(12),
   difficulty: z.coerce.number().int().min(1).max(3),
   instructionsText: z.string().min(6),
+  explanationText: z.string().min(6).default("Great job learning a new thinking skill."),
+  funFact: z.string().min(6).default("Did you know? Learning games make your brain stronger."),
+  learningAreas: z
+    .string()
+    .default("pattern-recognition")
+    .transform((value) =>
+      value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    ),
   isPublished: z.boolean(),
   settingsConfig: z.string().min(2),
   itemsConfig: z.string().min(2)
@@ -111,13 +149,20 @@ const activityItemSchema = z.object({
 export const activityDefinitionSchema = z
   .object({
     id: z.string().trim().min(1).max(120),
+    templateId: z.string().trim().min(1).max(120),
+    templateKey: z.string().trim().min(1).max(120),
     title: z.string().trim().min(3).max(120),
     slug: z.string().trim().min(3).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     type: activityTypeSchema,
+    interactionType: interactionTypeSchema,
     ageMin: z.number().int().min(4).max(12),
     ageMax: z.number().int().min(4).max(12),
     difficulty: z.number().int().min(1).max(3),
+    recommendedLevel: z.number().int().min(1).max(20),
+    learningAreas: z.array(learningAreaSchema).min(1).max(7),
     instructionsText: z.string().trim().min(6).max(500),
+    explanationText: z.string().trim().min(6).max(500),
+    funFact: z.string().trim().min(6).max(500),
     instructionsAudioUrl: z.string().trim().max(500).optional(),
     thumbnailUrl: z.string().trim().max(500).optional(),
     settingsConfig: z.record(z.string(), jsonValueSchema).optional(),
@@ -138,12 +183,23 @@ export const activityAttemptSchema = z
   .object({
     childId: z.string().trim().min(1).max(120),
     activityId: z.string().trim().min(1).max(120),
+    activityType: activityTypeSchema,
+    interactionType: interactionTypeSchema,
+    learningAreas: z.array(learningAreaSchema).min(1).max(7),
+    levelPlayed: z.number().int().min(1).max(20),
+    difficultySnapshot: z.number().int().min(1).max(3),
     score: z.number().int().min(0).max(100),
+    successRate: z.number().min(0).max(100),
+    correctAnswersCount: z.number().int().min(0).max(100),
+    totalQuestions: z.number().int().min(1).max(100),
     starsEarned: z.number().int().min(0).max(3),
     completed: z.boolean(),
     hintsUsed: z.number().int().min(0).max(100),
     mistakesCount: z.number().int().min(0).max(100),
     durationSeconds: z.number().int().min(0).max(86400),
+    explanationText: z.string().trim().max(500).optional(),
+    funFact: z.string().trim().max(500).optional(),
+    learningAreaScores: z.record(learningAreaSchema, z.number().min(0).max(100)),
     startedAt: isoDateTimeSchema,
     finishedAt: isoDateTimeSchema
   })
@@ -165,8 +221,22 @@ export function validateActivityAttempt(input: unknown) {
 }
 
 export function getDefaultSettingsForType(type: ActivityType) {
-  void type;
-  return JSON.stringify({}, null, 2);
+  const byType: Record<ActivityType, Record<string, unknown>> = {
+    "shape-match": {},
+    "count-objects": {},
+    "pattern-complete": {},
+    "sort-game": {},
+    "odd-one-out": {},
+    "sequence-order": {},
+    "memory-cards": {},
+    "logic-game": {},
+    "maze-path": {},
+    "connect-logic": {},
+    "code-blocks": {},
+    "word-builder": {}
+  };
+
+  return JSON.stringify(byType[type], null, 2);
 }
 
 export function getDefaultItemsForType(type: ActivityType) {
@@ -193,23 +263,6 @@ export function getDefaultItemsForType(type: ActivityType) {
         null,
         2
       );
-    case "count-objects":
-      return JSON.stringify(
-        [
-          {
-            promptText: "Count the objects.",
-            config: {
-              count: 4,
-              options: [2, 3, 4, 5]
-            },
-            answer: {
-              correctCount: 4
-            }
-          }
-        ],
-        null,
-        2
-      );
     case "pattern-complete":
       return JSON.stringify(
         [
@@ -219,57 +272,15 @@ export function getDefaultItemsForType(type: ActivityType) {
               sequence: [
                 { id: "circle-1", shape: "circle", color: "#f97316" },
                 { id: "square-1", shape: "square", color: "#0ea5e9" },
-                { id: "circle-2", shape: "circle", color: "#f97316" },
-                { id: "square-2", shape: "square", color: "#0ea5e9" }
+                { id: "circle-2", shape: "circle", color: "#f97316" }
               ],
               options: [
-                { id: "circle-answer", shape: "circle", color: "#f97316" },
+                { id: "square-answer", shape: "square", color: "#0ea5e9" },
                 { id: "triangle-answer", shape: "triangle", color: "#22c55e" }
               ]
             },
             answer: {
-              correctOptionId: "circle-answer"
-            }
-          }
-        ],
-        null,
-        2
-      );
-    case "odd-one-out":
-      return JSON.stringify(
-        [
-          {
-            promptText: "Three are fruits. One is not.",
-            config: {
-              options: [
-                { id: "a", label: "Apple", emoji: "🍎", color: "#fecaca" },
-                { id: "b", label: "Pear", emoji: "🍐", color: "#dcfce7" },
-                { id: "c", label: "Banana", emoji: "🍌", color: "#fef3c7" },
-                { id: "d", label: "Car", emoji: "🚗", color: "#dbeafe" }
-              ]
-            },
-            answer: {
-              correctOptionId: "d"
-            }
-          }
-        ],
-        null,
-        2
-      );
-    case "sequence-order":
-      return JSON.stringify(
-        [
-          {
-            promptText: "Put the story in order.",
-            config: {
-              steps: [
-                { id: "a", label: "Seed", emoji: "🌱" },
-                { id: "b", label: "Sprout", emoji: "🌿" },
-                { id: "c", label: "Flower", emoji: "🌸" }
-              ]
-            },
-            answer: {
-              correctOrderIds: ["a", "b", "c"]
+              correctOptionId: "square-answer"
             }
           }
         ],
@@ -302,7 +313,169 @@ export function getDefaultItemsForType(type: ActivityType) {
         null,
         2
       );
+    case "sequence-order":
+      return JSON.stringify(
+        [
+          {
+            promptText: "Place the story in order.",
+            config: {
+              steps: [
+                { id: "seed", label: "Seed", emoji: "🌱" },
+                { id: "sprout", label: "Sprout", emoji: "🌿" },
+                { id: "flower", label: "Flower", emoji: "🌸" }
+              ]
+            },
+            answer: {
+              correctOrderIds: ["seed", "sprout", "flower"]
+            }
+          }
+        ],
+        null,
+        2
+      );
+    case "odd-one-out":
+      return JSON.stringify(
+        [
+          {
+            promptText: "Three are fruits. One is not.",
+            config: {
+              options: [
+                { id: "a", label: "Apple", emoji: "🍎", color: "#fecaca" },
+                { id: "b", label: "Pear", emoji: "🍐", color: "#dcfce7" },
+                { id: "c", label: "Banana", emoji: "🍌", color: "#fef3c7" },
+                { id: "d", label: "Car", emoji: "🚗", color: "#dbeafe" }
+              ]
+            },
+            answer: {
+              correctOptionId: "d"
+            }
+          }
+        ],
+        null,
+        2
+      );
+    case "maze-path":
+      return JSON.stringify(
+        [
+          {
+            promptText: "Trace a safe path to the rocket.",
+            config: {
+              gridSize: 5,
+              start: { row: 0, col: 0 },
+              goal: { row: 4, col: 4 },
+              blockedCells: [
+                { row: 1, col: 1 },
+                { row: 1, col: 2 },
+                { row: 3, col: 3 }
+              ]
+            },
+            answer: {
+              correctPath: ["right", "right", "down", "down", "down", "right", "right", "down"]
+            }
+          }
+        ],
+        null,
+        2
+      );
+    case "connect-logic":
+      return JSON.stringify(
+        [
+          {
+            promptText: "Connect each helper to the right home.",
+            config: {
+              prompts: [
+                { id: "fish", label: "Fish", emoji: "🐟", color: "#bfdbfe" },
+                { id: "bird", label: "Bird", emoji: "🐦", color: "#fde68a" }
+              ],
+              targets: [
+                { id: "water", label: "Water", emoji: "🌊", color: "#dbeafe" },
+                { id: "sky", label: "Sky", emoji: "☁️", color: "#ede9fe" }
+              ]
+            },
+            answer: {
+              correctMatches: {
+                fish: "water",
+                bird: "sky"
+              }
+            }
+          }
+        ],
+        null,
+        2
+      );
+    case "code-blocks":
+      return JSON.stringify(
+        [
+          {
+            promptText: "Build the steps for a rocket launch.",
+            config: {
+              prompt: "Put the code blocks in the right order.",
+              blocks: [
+                { id: "ready", label: "Get ready", emoji: "🧑‍🚀", color: "#dbeafe" },
+                { id: "count", label: "Count down", emoji: "3️⃣", color: "#fde68a" },
+                { id: "launch", label: "Launch", emoji: "🚀", color: "#fecaca" }
+              ]
+            },
+            answer: {
+              correctOrderIds: ["ready", "count", "launch"]
+            }
+          }
+        ],
+        null,
+        2
+      );
+    case "word-builder":
+      return JSON.stringify(
+        [
+          {
+            promptText: "Type the missing word.",
+            config: {
+              prompt: "A robot follows a ___ to know what to do next.",
+              placeholderLength: 4,
+              keyboard: ["P", "L", "A", "N", "R", "T"],
+              acceptableAnswers: ["PLAN"]
+            },
+            answer: {
+              acceptableAnswers: ["PLAN"]
+            }
+          }
+        ],
+        null,
+        2
+      );
     default:
-      return JSON.stringify([], null, 2);
+      return JSON.stringify(
+        [
+          {
+            promptText: "Start here.",
+            config: {},
+            answer: {}
+          }
+        ],
+        null,
+        2
+      );
   }
 }
+
+export const learningAreaOptions: LearningArea[] = [
+  "pattern-recognition",
+  "logic-reasoning",
+  "spatial-thinking",
+  "memory",
+  "problem-solving",
+  "sequencing",
+  "classification"
+];
+
+export const interactionTypeOptions: InteractionType[] = [
+  "drag-drop",
+  "click-select",
+  "draw-trace",
+  "type-answer",
+  "object-match",
+  "sort",
+  "sequence",
+  "connect",
+  "block-arrange"
+];

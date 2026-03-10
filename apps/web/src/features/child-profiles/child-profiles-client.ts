@@ -9,7 +9,11 @@ import {
   loadStoredAttempts,
   saveLocalChildProfiles
 } from "@/lib/utils/storage";
-import { ChildProfile, ChildThemePreferences } from "@/types/activity";
+import {
+  ActivityAttempt,
+  ChildProfile,
+  ChildThemePreferences
+} from "@/types/activity";
 
 export type ChildProfileInput = {
   displayName: string;
@@ -295,12 +299,25 @@ export async function listChildAttempts(childId: string) {
     id: attempt.id,
     childId: attempt.child_id,
     activityId: attempt.activity_id,
+    activityType: attempt.activity_type as ActivityAttempt["activityType"],
+    interactionType: attempt.interaction_type as ActivityAttempt["interactionType"],
+    learningAreas: (attempt.learning_areas ?? []) as ActivityAttempt["learningAreas"],
+    levelPlayed: attempt.level_played,
+    difficultySnapshot: attempt.difficulty_snapshot,
     score: attempt.score,
+    successRate: Number(attempt.success_rate),
+    correctAnswersCount: attempt.correct_answers_count,
+    totalQuestions: attempt.total_questions,
     starsEarned: attempt.stars_earned,
     completed: attempt.completed,
     hintsUsed: attempt.hints_used,
     mistakesCount: attempt.mistakes_count,
     durationSeconds: attempt.duration_seconds,
+    explanationText: attempt.explanation_text ?? undefined,
+    funFact: attempt.fun_fact ?? undefined,
+    learningAreaScores:
+      (attempt.learning_area_scores_json as ActivityAttempt["learningAreaScores"]) ??
+      {},
     startedAt: attempt.started_at,
     finishedAt: attempt.finished_at
   }));
