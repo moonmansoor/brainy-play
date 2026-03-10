@@ -1,60 +1,119 @@
 import { NextResponse } from "next/server";
 
-import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { ActivityDefinition } from "@/types/activity";
+import { getServerAuthContext } from "@/features/auth/server-auth";
+import { validateActivityDefinition } from "@/lib/validation/activity";
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as ActivityDefinition;
-  const supabase = await getSupabaseServerClient();
+  let payload: unknown;
+
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json(
+      { ok: false, persisted: false, error: "Request body must be valid JSON." },
+      { status: 400 }
+    );
+  }
+
+  const parsed = validateActivityDefinition(payload);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        ok: false,
+        persisted: false,
+        error: parsed.error.issues[0]?.message ?? "Activity payload is invalid."
+      },
+      { status: 400 }
+    );
+  }
+
+  const { supabase, user, profile } = await getServerAuthContext();
 
   if (!supabase) {
-    return NextResponse.json({ ok: true, persisted: false });
+    return NextResponse.json(
+      {
+        ok: false,
+        persisted: false,
+        error: "Admin sync requires Supabase authentication."
+      },
+      { status: 503 }
+    );
+  }
+
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, persisted: false, error: "Authentication required." },
+      { status: 401 }
+    );
+  }
+
+  if (profile?.role !== "admin") {
+    return NextResponse.json(
+      { ok: false, persisted: false, error: "Admin access required." },
+      { status: 403 }
+    );
   }
 
   const { error } = await supabase.from("activities").upsert(
     {
-      id: body.id,
-      title: body.title,
-      slug: body.slug,
-      type: body.type,
-      age_min: body.ageMin,
-      age_max: body.ageMax,
-      difficulty: body.difficulty,
-      instructions_text: body.instructionsText,
-      instructions_audio_url: body.instructionsAudioUrl ?? null,
-      thumbnail_url: body.thumbnailUrl ?? null,
-      config_json: body.settingsConfig ?? {},
-      default_theme_id: body.defaultThemeId,
-      theme_ids: body.supportedThemeIds,
-      visual_config_json: body.visualThemes,
-      is_published: body.isPublished
+      id: parsed.data.id,
+      title: parsed.data.title,
+      slug: parsed.data.slug,
+      type: parsed.data.type,
+      age_min: parsed.data.ageMin,
+      age_max: parsed.data.ageMax,
+      difficulty: parsed.data.difficulty,
+      instructions_text: parsed.data.instructionsText,
+      instructions_audio_url: parsed.data.instructionsAudioUrl ?? null,
+      thumbnail_url: parsed.data.thumbnailUrl ?? null,
+      config_json: parsed.data.settingsConfig ?? {},
+      default_theme_id: parsed.data.defaultThemeId,
+      theme_ids: parsed.data.supportedThemeIds,
+      visual_config_json: parsed.data.visualThemes,
+      is_published: parsed.data.isPublished
     },
     { onConflict: "slug" }
   );
 
   if (error) {
+    const status = error.code === "42501" ? 403 : 500;
     return NextResponse.json(
-      { ok: false, persisted: false, error: error.message },
-      { status: 500 }
+      {
+        ok: false,
+        persisted: false,
+        error:
+          status === 403
+            ? "Not authorized to save this activity."
+            : "Could not save activity."
+      },
+      { status }
     );
   }
 
   const { error: deleteError } = await supabase
     .from("activity_items")
     .delete()
-    .eq("activity_id", body.id);
+    .eq("activity_id", parsed.data.id);
 
   if (deleteError) {
+    const status = deleteError.code === "42501" ? 403 : 500;
     return NextResponse.json(
-      { ok: false, persisted: false, error: deleteError.message },
-      { status: 500 }
+      {
+        ok: false,
+        persisted: false,
+        error:
+          status === 403
+            ? "Not authorized to replace activity items."
+            : "Could not replace activity items."
+      },
+      { status }
     );
   }
 
   const { error: itemsError } = await supabase.from("activity_items").insert(
-    body.items.map((item) => ({
+    parsed.data.items.map((item) => ({
       id: item.id,
-      activity_id: body.id,
+      activity_id: parsed.data.id,
       order_index: item.orderIndex,
       prompt_text: item.promptText ?? null,
       config_json: item.config,
@@ -65,9 +124,17 @@ export async function POST(request: Request) {
   );
 
   if (itemsError) {
+    const status = itemsError.code === "42501" ? 403 : 500;
     return NextResponse.json(
-      { ok: false, persisted: false, error: itemsError.message },
-      { status: 500 }
+      {
+        ok: false,
+        persisted: false,
+        error:
+          status === 403
+            ? "Not authorized to save activity items."
+            : "Could not save activity items."
+      },
+      { status }
     );
   }
 

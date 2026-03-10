@@ -1,5 +1,6 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
+  clearActiveChildId,
   findLocalParentAccountByEmail,
   loadCurrentLocalParent,
   saveLocalParentAccount,
@@ -23,6 +24,43 @@ function mapLocalParent(profile: ParentProfile) {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function validateRegistrationPassword(password: string) {
+  if (password.length < 8) {
+    throw new Error("Password must be at least 8 characters long.");
+  }
+}
+
+async function hashLocalPassword(password: string, salt: string) {
+  const encoded = new TextEncoder().encode(`${salt}:${password}`);
+  const digest = await crypto.subtle.digest("SHA-256", encoded);
+  return Array.from(new Uint8Array(digest), (value) =>
+    value.toString(16).padStart(2, "0")
+  ).join("");
+}
+
+async function buildLocalPasswordRecord(password: string) {
+  const passwordSalt = crypto.randomUUID();
+  const passwordHash = await hashLocalPassword(password, passwordSalt);
+
+  return {
+    passwordHash,
+    passwordSalt
+  };
+}
+
+async function verifyLocalPassword(
+  account: NonNullable<ReturnType<typeof findLocalParentAccountByEmail>>,
+  password: string
+) {
+  if (account.passwordHash && account.passwordSalt) {
+    return (
+      (await hashLocalPassword(password, account.passwordSalt)) === account.passwordHash
+    );
+  }
+
+  return account.password === password;
 }
 
 export async function getCurrentParentSession() {
@@ -55,8 +93,16 @@ export async function signInParent(payload: ParentAuthPayload) {
 
   if (!supabase) {
     const account = findLocalParentAccountByEmail(email);
-    if (!account || account.password !== payload.password) {
+    if (!account || !(await verifyLocalPassword(account, payload.password))) {
       throw new Error("Invalid email or password.");
+    }
+
+    if (account.password && !account.passwordHash) {
+      const passwordRecord = await buildLocalPasswordRecord(payload.password);
+      saveLocalParentAccount({
+        ...account,
+        ...passwordRecord
+      });
     }
 
     setCurrentLocalParent(account.id);
@@ -75,6 +121,7 @@ export async function signInParent(payload: ParentAuthPayload) {
 export async function registerParent(payload: ParentAuthPayload) {
   const supabase = getSupabaseBrowserClient();
   const email = normalizeEmail(payload.email);
+  validateRegistrationPassword(payload.password);
 
   if (!supabase) {
     if (findLocalParentAccountByEmail(email)) {
@@ -92,9 +139,11 @@ export async function registerParent(payload: ParentAuthPayload) {
       updatedAt: now
     };
 
+    const passwordRecord = await buildLocalPasswordRecord(payload.password);
+
     saveLocalParentAccount({
       ...parentProfile,
-      password: payload.password
+      ...passwordRecord
     });
     setCurrentLocalParent(parentProfile.id);
 
@@ -135,10 +184,12 @@ export async function signOutParent() {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) {
     setCurrentLocalParent(null);
+    clearActiveChildId();
     return;
   }
 
   await supabase.auth.signOut();
+  clearActiveChildId();
 }
 
 export async function fetchParentProfile(userId: string) {
