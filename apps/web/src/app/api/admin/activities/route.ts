@@ -60,6 +60,7 @@ export async function POST(request: Request) {
       title: parsed.data.title,
       slug: parsed.data.slug,
       type: parsed.data.type,
+      required_level: parsed.data.requiredLevel,
       age_min: parsed.data.ageMin,
       age_max: parsed.data.ageMax,
       difficulty: parsed.data.difficulty,

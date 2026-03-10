@@ -60,6 +60,7 @@ function toFormState(activity?: ActivityDefinition) {
     title: activity?.title ?? "",
     slug: activity?.slug ?? "",
     type: activity?.type ?? ("shape-match" as ActivityType),
+    requiredLevel: activity?.requiredLevel ?? 1,
     ageMin: activity?.ageMin ?? 4,
     ageMax: activity?.ageMax ?? 6,
     difficulty: activity?.difficulty ?? 1,
@@ -167,6 +168,7 @@ export function AdminActivityManager() {
       title: parsed.data.title,
       slug: parsed.data.slug,
       type: parsed.data.type,
+      requiredLevel: parsed.data.requiredLevel,
       ageMin: parsed.data.ageMin,
       ageMax: parsed.data.ageMax,
       difficulty: parsed.data.difficulty as ActivityDefinition["difficulty"],
@@ -291,6 +293,22 @@ export function AdminActivityManager() {
                 </option>
               ))}
             </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold">
+            Required level
+            <input
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+              type="number"
+              min={1}
+              max={99}
+              value={formState.requiredLevel}
+              onChange={(event) =>
+                setFormState((current) => ({
+                  ...current,
+                  requiredLevel: Number(event.target.value)
+                }))
+              }
+            />
           </label>
           <label className="grid gap-2 text-sm font-semibold">
             Difficulty

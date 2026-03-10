@@ -29,6 +29,7 @@ function mapActivity(row: ActivityRow, items: ActivityItem[]): ActivityDefinitio
     title: row.title,
     slug: row.slug,
     type: row.type as ActivityDefinition["type"],
+    requiredLevel: row.required_level,
     ageMin: row.age_min,
     ageMax: row.age_max,
     difficulty: row.difficulty as ActivityDefinition["difficulty"],
@@ -59,6 +60,7 @@ export function mergeActivities(...collections: ActivityDefinition[][]) {
     for (const activity of collection) {
       bySlug.set(activity.slug, {
         ...activity,
+        requiredLevel: Math.max(1, activity.requiredLevel ?? 1),
         items: [...activity.items].sort((left, right) => left.orderIndex - right.orderIndex)
       });
     }

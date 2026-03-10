@@ -1,3 +1,4 @@
+import { createInitialChildProgress } from "@/features/progress/progression-rules";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   validateChildProfileInput,
@@ -6,6 +7,7 @@ import {
 import {
   loadCurrentLocalParent,
   loadLocalChildProfiles,
+  saveLocalChildProgress,
   loadStoredAttempts,
   saveLocalChildProfiles
 } from "@/lib/utils/storage";
@@ -153,6 +155,7 @@ export async function createChildProfile(
     getScopedLocalChildren(parentId);
     const nextChild = buildLocalChildProfile(parentId, parsedInput.data);
     saveLocalChildProfiles([...loadLocalChildProfiles(), nextChild]);
+    saveLocalChildProgress(createInitialChildProgress(nextChild.id));
     return nextChild;
   }
 
@@ -177,6 +180,9 @@ export async function createChildProfile(
     .single();
 
   if (error) throw error;
+  await supabase.from("child_progress").upsert({
+    child_id: data.id
+  });
   return mapChildProfile(data);
 }
 
@@ -297,6 +303,8 @@ export async function listChildAttempts(childId: string) {
     activityId: attempt.activity_id,
     score: attempt.score,
     starsEarned: attempt.stars_earned,
+    correctAnswersCount: attempt.correct_answers_count ?? 0,
+    brainyCoinsEarned: attempt.brainy_coins_earned ?? 0,
     completed: attempt.completed,
     hintsUsed: attempt.hints_used,
     mistakesCount: attempt.mistakes_count,

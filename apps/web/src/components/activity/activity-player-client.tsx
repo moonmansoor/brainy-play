@@ -12,6 +12,16 @@ import { getActivityBySlug } from "@/features/activities/repository";
 import { resolveActiveChild } from "@/features/child-profiles/child-session-client";
 import { markChildLastLogin } from "@/features/child-profiles/child-profiles-client";
 import {
+  applyAttemptToProgress,
+  evaluateActivityAccess
+} from "@/features/progress/progression-rules";
+import {
+  applyLocalAttemptProgress,
+  getChildExperience
+} from "@/features/progress/progress-client";
+import { BRAINY_COIN_LABEL } from "@/lib/constants/game-economy";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
   buildAttemptPayload,
   formatDifficulty,
   getActivityTypeLabel,
@@ -24,8 +34,19 @@ import {
   ActivityCompletionPayload,
   ActivityDefinition,
   ActivityOutcome,
-  ChildProfile
+  ChildProgress,
+  ChildProfile,
+  RewardDefinition
 } from "@/types/activity";
+
+type CompletionState = {
+  outcome: ActivityOutcome;
+  brainyCoinsEarned: number;
+  currentBalance: number;
+  didLevelUp: boolean;
+  nextLevel: number;
+  unlockedRewards: RewardDefinition[];
+};
 
 export function ActivityPlayerClient({
   slug,
@@ -37,15 +58,19 @@ export function ActivityPlayerClient({
   const [activity, setActivity] = useState<ActivityDefinition | null>(null);
   const [activeChild, setActiveChild] = useState<ChildProfile | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [completion, setCompletion] = useState<ActivityOutcome | null>(null);
+  const [completion, setCompletion] = useState<CompletionState | null>(null);
   const [submitMessage, setSubmitMessage] = useState("");
   const [isPending, startTransition] = useTransition();
   const [loading, setLoading] = useState(true);
+  const [experience, setExperience] = useState<Awaited<
+    ReturnType<typeof getChildExperience>
+  > | null>(null);
 
   useEffect(() => {
     async function hydrate() {
       setLoading(true);
-      setActivity(await getActivityBySlug(slug));
+      const nextActivity = await getActivityBySlug(slug);
+      setActivity(nextActivity);
 
       const resolved = await resolveActiveChild(childId);
       setActiveChild(resolved.child);
@@ -53,6 +78,9 @@ export function ActivityPlayerClient({
 
       if (resolved.child) {
         await markChildLastLogin(resolved.child.id);
+        setExperience(await getChildExperience(resolved.child));
+      } else {
+        setExperience(null);
       }
 
       setLoading(false);
@@ -67,6 +95,14 @@ export function ActivityPlayerClient({
   );
   const themePack = visualTheme ? getThemePack(visualTheme.themeId) : null;
   const rewardStyle = getChildThemePreferences(activeChild).preferredRewardStyle;
+  const accessState =
+    activity && experience
+      ? evaluateActivityAccess({
+          activity,
+          progress: experience.progress,
+          subscription: experience.subscription
+        })
+      : null;
 
   async function syncAttempt(payload: ActivityCompletionPayload) {
     const response = await fetch("/api/attempts", {
@@ -77,11 +113,26 @@ export function ActivityPlayerClient({
       body: JSON.stringify(payload)
     });
 
-    return response.json();
+    return {
+      status: response.status,
+      body: (await response.json()) as {
+        ok: boolean;
+        persisted: boolean;
+        error?: string;
+        progression?: {
+          progress: ChildProgress;
+          brainyCoinsEarned: number;
+          previousLevel: number;
+          nextLevel: number;
+          didLevelUp: boolean;
+          unlockedRewards: RewardDefinition[];
+        };
+      }
+    };
   }
 
-  function handleComplete(outcome: ActivityOutcome) {
-    if (!activity || !activeChild) return;
+  function buildCompletionState(outcome: ActivityOutcome) {
+    if (!activity || !activeChild || !experience) return null;
 
     const startedAt = new Date(
       Date.now() - outcome.durationSeconds * 1000
@@ -94,20 +145,119 @@ export function ActivityPlayerClient({
       startedAt,
       finishedAt
     });
+    const preview = applyAttemptToProgress({
+      childId: activeChild.id,
+      progress: experience.progress,
+      activity,
+      attempt: payload,
+      existingUnlockCodes: experience.rewardUnlocks.map((unlock) => unlock.rewardCode),
+      rewardDefinitions: experience.rewardDefinitions
+    });
 
-    saveAttemptLocally(payload);
-    setCompletion(outcome);
+    return {
+      payload,
+      preview: {
+        outcome,
+        brainyCoinsEarned: preview.brainyCoinsEarned,
+        currentBalance: preview.nextProgress.brainyCoinsBalance,
+        didLevelUp: preview.didLevelUp,
+        nextLevel: preview.nextLevel,
+        unlockedRewards: preview.unlockedRewardDefinitions
+      } satisfies CompletionState
+    };
+  }
+
+  function handleComplete(outcome: ActivityOutcome) {
+    if (!activity || !activeChild || !experience) return;
+
+    const completionState = buildCompletionState(outcome);
+    if (!completionState) return;
+
+    saveAttemptLocally(completionState.payload, {
+      brainyCoinsEarned: completionState.preview.brainyCoinsEarned
+    });
+    setCompletion(completionState.preview);
 
     startTransition(async () => {
       try {
-        const result = await syncAttempt(payload);
-        setSubmitMessage(
-          result.persisted
-            ? "Progress saved to Supabase."
-            : "Progress saved in demo mode."
+        if (!getSupabaseBrowserClient()) {
+          const localResult = await applyLocalAttemptProgress({
+            child: activeChild,
+            activity,
+            payload: completionState.payload
+          });
+          setExperience({
+            progress: localResult.nextProgress,
+            rewardDefinitions: localResult.rewardDefinitions,
+            rewardUnlocks: localResult.rewardUnlocks,
+            subscription: localResult.subscription
+          });
+          setCompletion({
+            outcome,
+            brainyCoinsEarned: localResult.brainyCoinsEarned,
+            currentBalance: localResult.nextProgress.brainyCoinsBalance,
+            didLevelUp: localResult.didLevelUp,
+            nextLevel: localResult.nextLevel,
+            unlockedRewards: localResult.unlockedRewardDefinitions
+          });
+          setSubmitMessage("Progress saved in demo mode.");
+          return;
+        }
+
+        const result = await syncAttempt(completionState.payload);
+        if (!result.body.ok || !result.body.progression) {
+          throw new Error(result.body.error ?? "Cloud save failed.");
+        }
+        const progression = result.body.progression;
+
+        setExperience((current) =>
+          current
+            ? {
+                ...current,
+                progress: progression.progress,
+                rewardUnlocks: [
+                  ...current.rewardUnlocks,
+                  ...progression.unlockedRewards.map((reward) => ({
+                    id: `${activeChild.id}:${reward.code}:${completionState.payload.finishedAt}`,
+                    childId: activeChild.id,
+                    rewardCode: reward.code,
+                    rewardType: reward.rewardType,
+                    unlockedAt: completionState.payload.finishedAt
+                  }))
+                ]
+              }
+            : current
         );
+        setCompletion({
+          outcome,
+          brainyCoinsEarned: progression.brainyCoinsEarned,
+          currentBalance: progression.progress.brainyCoinsBalance,
+          didLevelUp: progression.didLevelUp,
+          nextLevel: progression.nextLevel,
+          unlockedRewards: progression.unlockedRewards
+        });
+        setSubmitMessage("Progress saved to Supabase.");
       } catch {
-        setSubmitMessage("Progress saved in demo mode.");
+        const localResult = await applyLocalAttemptProgress({
+          child: activeChild,
+          activity,
+          payload: completionState.payload
+        });
+        setExperience({
+          progress: localResult.nextProgress,
+          rewardDefinitions: localResult.rewardDefinitions,
+          rewardUnlocks: localResult.rewardUnlocks,
+          subscription: localResult.subscription
+        });
+        setCompletion({
+          outcome,
+          brainyCoinsEarned: localResult.brainyCoinsEarned,
+          currentBalance: localResult.nextProgress.brainyCoinsBalance,
+          didLevelUp: localResult.didLevelUp,
+          nextLevel: localResult.nextLevel,
+          unlockedRewards: localResult.unlockedRewardDefinitions
+        });
+        setSubmitMessage("Cloud save failed. Progress was kept in demo mode.");
       }
     });
   }
@@ -120,7 +270,7 @@ export function ActivityPlayerClient({
     );
   }
 
-  if (!activity || !activeChild || !visualTheme || !themePack) {
+  if (!activity || !activeChild || !visualTheme || !themePack || !experience) {
     return (
       <Panel>
         <p className="font-display text-2xl font-semibold">
@@ -135,6 +285,36 @@ export function ActivityPlayerClient({
           <LinkButton href={authReady ? "/child" : "/auth/login"}>
             {authReady ? "Back to child profiles" : "Parent login"}
           </LinkButton>
+        </div>
+      </Panel>
+    );
+  }
+
+  if (accessState && !accessState.isPlayable) {
+    return (
+      <Panel className="grid gap-4">
+        <p className="text-xs font-black uppercase tracking-[0.24em] text-amber-700">
+          Activity locked
+        </p>
+        <h2 className="font-display text-3xl font-semibold">
+          {accessState.isPremiumOnly
+            ? "Subscription needed for this level"
+            : `Reach level ${accessState.requiredLevel} first`}
+        </h2>
+        <p className="text-sm leading-6 text-slate-700">
+          {accessState.isPremiumOnly
+            ? `Free play ends at level ${accessState.freeLevelLimit}. Ask a grown-up to unlock the next adventure.`
+            : `This activity opens after ${activeChild.displayName} reaches level ${accessState.requiredLevel}.`}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <LinkButton href={`/child/activities?childId=${activeChild.id}`} variant="secondary">
+            Back to library
+          </LinkButton>
+          {accessState.isPremiumOnly ? (
+            <LinkButton href={`/parent?childId=${activeChild.id}`}>
+              Ask a grown-up to upgrade
+            </LinkButton>
+          ) : null}
         </div>
       </Panel>
     );
@@ -159,7 +339,10 @@ export function ActivityPlayerClient({
                 {formatDifficulty(activity.difficulty)}
               </span>
               <span className="rounded-full bg-white/75 px-4 py-2 text-slate-700">
-                Ages {activity.ageMin}-{activity.ageMax}
+                Level {activity.requiredLevel}
+              </span>
+              <span className="rounded-full bg-white/75 px-4 py-2 text-slate-700">
+                {BRAINY_COIN_LABEL}: {experience.progress.brainyCoinsBalance}
               </span>
             </div>
           </div>
@@ -184,9 +367,13 @@ export function ActivityPlayerClient({
 
       {completion ? (
         <RewardStrip
-          stars={completion.starsEarned}
+          stars={completion.outcome.starsEarned}
           rewardStyle={rewardStyle ?? "sparkles"}
-          message={`${activeChild.displayName} earned ${completion.starsEarned} star${completion.starsEarned === 1 ? "" : "s"}`}
+          message={`${activeChild.displayName} earned ${completion.outcome.starsEarned} star${completion.outcome.starsEarned === 1 ? "" : "s"}`}
+          brainyCoinsEarned={completion.brainyCoinsEarned}
+          currentBalance={completion.currentBalance}
+          didLevelUp={completion.didLevelUp}
+          unlockedRewards={completion.unlockedRewards}
         />
       ) : null}
 
@@ -198,8 +385,9 @@ export function ActivityPlayerClient({
                 Celebration complete
               </p>
               <p className="mt-2 text-sm text-emerald-900">
-                Score {completion.score}. Mistakes {completion.mistakesCount}.{" "}
-                {submitMessage || (isPending ? "Saving progress..." : "")}
+                Score {completion.outcome.score}. Mistakes {completion.outcome.mistakesCount}.
+                {" "}
+                Next level {completion.nextLevel}. {submitMessage || (isPending ? "Saving progress..." : "")}
               </p>
             </div>
             <div className="flex flex-wrap gap-3">

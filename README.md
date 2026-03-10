@@ -39,3 +39,17 @@ The system uses images, shapes, numbers, and puzzles to train problem-solving sk
 ## Current Status
 
 MVP in development.
+
+## Subscription And Rewards MVP
+
+- Free accounts can play through level 5.
+- Levels after 5 stay visible but locked until the parent activates a subscription.
+- Access control is enforced in both the UI and the attempt-saving API layer.
+- Correct answers, activity completion, and level-ups award `Brainy Coins`.
+- Reward milestones unlock automatically at 50, 100, and 500 Brainy Coins.
+
+## Payment Architecture
+
+- Parent subscriptions are stored in an internal `user_subscriptions` model with plan, status, start date, optional end date, and provider reference fields.
+- The current upgrade flow uses a placeholder/manual activation path so the product can ship before a real checkout provider is connected.
+- A dedicated subscription upgrade API route is in place so Stripe or another payment provider can later replace the placeholder flow without rewriting progression or access rules.

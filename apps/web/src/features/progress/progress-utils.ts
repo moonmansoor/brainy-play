@@ -12,7 +12,23 @@ import {
 } from "@/types/activity";
 
 export function mergeAttempts(extraAttempts: ActivityAttempt[]) {
-  return [...extraAttempts, ...sampleAttempts].sort(
+  const byFingerprint = new Map<string, ActivityAttempt>();
+
+  for (const attempt of [...extraAttempts, ...sampleAttempts]) {
+    const fingerprint = [
+      attempt.childId,
+      attempt.activityId,
+      attempt.startedAt,
+      attempt.finishedAt,
+      attempt.score
+    ].join(":");
+
+    if (!byFingerprint.has(fingerprint)) {
+      byFingerprint.set(fingerprint, attempt);
+    }
+  }
+
+  return Array.from(byFingerprint.values()).sort(
     (left, right) =>
       new Date(right.finishedAt).getTime() - new Date(left.finishedAt).getTime()
   );

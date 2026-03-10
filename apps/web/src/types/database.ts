@@ -67,12 +67,113 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["children"]["Insert"]>;
         Relationships: [];
       };
+      user_subscriptions: {
+        Row: {
+          id: string;
+          account_id: string;
+          plan_type: string;
+          status: string;
+          starts_at: string | null;
+          ends_at: string | null;
+          payment_provider: string | null;
+          provider_customer_id: string | null;
+          provider_subscription_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          account_id: string;
+          plan_type: string;
+          status: string;
+          starts_at?: string | null;
+          ends_at?: string | null;
+          payment_provider?: string | null;
+          provider_customer_id?: string | null;
+          provider_subscription_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_subscriptions"]["Insert"]>;
+        Relationships: [];
+      };
+      child_progress: {
+        Row: {
+          child_id: string;
+          current_level: number;
+          brainy_coins_balance: number;
+          total_brainy_coins_earned: number;
+          total_correct_answers: number;
+          total_completed_activities: number;
+          last_activity_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          child_id: string;
+          current_level?: number;
+          brainy_coins_balance?: number;
+          total_brainy_coins_earned?: number;
+          total_correct_answers?: number;
+          total_completed_activities?: number;
+          last_activity_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_progress"]["Insert"]>;
+        Relationships: [];
+      };
+      reward_definitions: {
+        Row: {
+          id: string;
+          code: string;
+          title: string;
+          description: string;
+          required_brainy_coins: number;
+          reward_type: string;
+          metadata_json: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          title: string;
+          description: string;
+          required_brainy_coins: number;
+          reward_type: string;
+          metadata_json?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["reward_definitions"]["Insert"]>;
+        Relationships: [];
+      };
+      child_reward_unlocks: {
+        Row: {
+          id: string;
+          child_id: string;
+          reward_code: string;
+          reward_type: string;
+          unlocked_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          reward_code: string;
+          reward_type: string;
+          unlocked_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_reward_unlocks"]["Insert"]>;
+        Relationships: [];
+      };
       activities: {
         Row: {
           id: string;
           title: string;
           slug: string;
           type: string;
+          required_level: number;
           age_min: number;
           age_max: number;
           difficulty: number;
@@ -92,6 +193,7 @@ export type Database = {
           title: string;
           slug: string;
           type: string;
+          required_level?: number;
           age_min: number;
           age_max: number;
           difficulty: number;
@@ -107,6 +209,24 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["activities"]["Insert"]>;
+        Relationships: [];
+      };
+      activity_assets: {
+        Row: {
+          id: string;
+          activity_id: string;
+          asset_type: string;
+          file_url: string;
+          metadata_json: Json;
+        };
+        Insert: {
+          id?: string;
+          activity_id: string;
+          asset_type: string;
+          file_url: string;
+          metadata_json?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["activity_assets"]["Insert"]>;
         Relationships: [];
       };
       activity_items: {
@@ -144,6 +264,8 @@ export type Database = {
           activity_id: string;
           score: number;
           stars_earned: number;
+          correct_answers_count: number;
+          brainy_coins_earned: number;
           completed: boolean;
           hints_used: number;
           mistakes_count: number;
@@ -157,6 +279,8 @@ export type Database = {
           activity_id: string;
           score: number;
           stars_earned: number;
+          correct_answers_count?: number;
+          brainy_coins_earned?: number;
           completed: boolean;
           hints_used?: number;
           mistakes_count?: number;
@@ -167,6 +291,40 @@ export type Database = {
         Update: Partial<
           Database["public"]["Tables"]["activity_attempts"]["Insert"]
         >;
+        Relationships: [];
+      };
+      badges: {
+        Row: {
+          id: string;
+          code: string;
+          title: string;
+          description: string;
+          image_url: string | null;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          title: string;
+          description: string;
+          image_url?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["badges"]["Insert"]>;
+        Relationships: [];
+      };
+      child_badges: {
+        Row: {
+          id: string;
+          child_id: string;
+          badge_id: string;
+          awarded_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          badge_id: string;
+          awarded_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_badges"]["Insert"]>;
         Relationships: [];
       };
     };

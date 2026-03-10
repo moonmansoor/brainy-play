@@ -4,8 +4,10 @@ import {
   ActivityItem,
   ActivityVisualTheme,
   Badge,
+  ChildProgress,
   ChildProfile,
   ParentProfile,
+  RewardUnlock,
   ThemeId,
   ThemePack
 } from "@/types/activity";
@@ -218,6 +220,7 @@ export const sampleActivities: ActivityDefinition[] = [
     title: "Shape Match Adventure",
     slug: "shape-match-adventure",
     type: "shape-match",
+    requiredLevel: 1,
     ageMin: 4,
     ageMax: 6,
     difficulty: 1,
@@ -339,6 +342,7 @@ export const sampleActivities: ActivityDefinition[] = [
     title: "Count the Treasure",
     slug: "count-the-treasure",
     type: "count-objects",
+    requiredLevel: 2,
     ageMin: 4,
     ageMax: 8,
     difficulty: 1,
@@ -411,6 +415,7 @@ export const sampleActivities: ActivityDefinition[] = [
     title: "Pattern Parade",
     slug: "pattern-parade",
     type: "pattern-complete",
+    requiredLevel: 3,
     ageMin: 5,
     ageMax: 8,
     difficulty: 2,
@@ -525,6 +530,7 @@ export const sampleActivities: ActivityDefinition[] = [
     title: "Odd One Out Picnic",
     slug: "odd-one-out-picnic",
     type: "odd-one-out",
+    requiredLevel: 4,
     ageMin: 5,
     ageMax: 8,
     difficulty: 2,
@@ -604,6 +610,7 @@ export const sampleActivities: ActivityDefinition[] = [
     title: "Story Sequence Trail",
     slug: "story-sequence-trail",
     type: "sequence-order",
+    requiredLevel: 5,
     ageMin: 5,
     ageMax: 9,
     difficulty: 2,
@@ -681,6 +688,7 @@ export const sampleActivities: ActivityDefinition[] = [
     title: "Shape Sorting Safari",
     slug: "shape-sorting-safari",
     type: "sort-game",
+    requiredLevel: 6,
     ageMin: 4,
     ageMax: 7,
     difficulty: 2,
@@ -797,6 +805,8 @@ export const sampleAttempts: ActivityAttempt[] = [
     activityId: "activity-shape-match",
     score: 100,
     starsEarned: 3,
+    correctAnswersCount: 3,
+    brainyCoinsEarned: 65,
     completed: true,
     hintsUsed: 0,
     mistakesCount: 0,
@@ -810,6 +820,8 @@ export const sampleAttempts: ActivityAttempt[] = [
     activityId: "activity-count-objects",
     score: 85,
     starsEarned: 2,
+    correctAnswersCount: 3,
+    brainyCoinsEarned: 65,
     completed: true,
     hintsUsed: 0,
     mistakesCount: 1,
@@ -823,6 +835,8 @@ export const sampleAttempts: ActivityAttempt[] = [
     activityId: "activity-pattern-complete",
     score: 70,
     starsEarned: 1,
+    correctAnswersCount: 3,
+    brainyCoinsEarned: 65,
     completed: true,
     hintsUsed: 0,
     mistakesCount: 2,
@@ -846,5 +860,50 @@ export const sampleBadges: Badge[] = [
     title: "Theme Explorer",
     description: "Tried activities across favorite visual worlds.",
     imageUrl: "/images/rewards/badge-ribbon.svg"
+  }
+];
+
+export const sampleChildProgress: ChildProgress[] = [
+  {
+    childId: "child-1",
+    currentLevel: 2,
+    brainyCoinsBalance: 65,
+    totalBrainyCoinsEarned: 65,
+    totalCorrectAnswers: 3,
+    totalCompletedActivities: 1,
+    lastActivityAt: "2026-03-09T08:10:22.000Z"
+  },
+  {
+    childId: "child-2",
+    currentLevel: 4,
+    brainyCoinsBalance: 130,
+    totalBrainyCoinsEarned: 130,
+    totalCorrectAnswers: 6,
+    totalCompletedActivities: 2,
+    lastActivityAt: "2026-03-09T08:17:44.000Z"
+  }
+];
+
+export const sampleRewardUnlocks: RewardUnlock[] = [
+  {
+    id: "unlock-mini-game-child-1",
+    childId: "child-1",
+    rewardCode: "mini-game-unlock",
+    rewardType: "mini-game",
+    unlockedAt: "2026-03-09T08:10:22.000Z"
+  },
+  {
+    id: "unlock-mini-game-child-2",
+    childId: "child-2",
+    rewardCode: "mini-game-unlock",
+    rewardType: "mini-game",
+    unlockedAt: "2026-03-09T08:14:31.000Z"
+  },
+  {
+    id: "unlock-avatar-child-2",
+    childId: "child-2",
+    rewardCode: "new-avatar",
+    rewardType: "avatar",
+    unlockedAt: "2026-03-09T08:17:44.000Z"
   }
 ];

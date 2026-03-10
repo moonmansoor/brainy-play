@@ -29,6 +29,20 @@ export type RewardStyle = "sparkles" | "badges" | "stickers";
 
 export type AvatarStyle = "adventurer" | "dreamer" | "explorer";
 
+export type SubscriptionPlanType =
+  | "free"
+  | "premium-monthly"
+  | "premium-yearly";
+
+export type SubscriptionStatus =
+  | "inactive"
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled";
+
+export type RewardType = "mini-game" | "avatar" | "certificate";
+
 export type ChildThemePreferences = {
   favoriteThemes: ThemeId[];
   favoriteColor?: string;
@@ -278,6 +292,7 @@ export type ActivityDefinition = {
   title: string;
   slug: string;
   type: ActivityType;
+  requiredLevel: number;
   ageMin: number;
   ageMax: number;
   difficulty: Difficulty;
@@ -300,6 +315,8 @@ export type ActivityAttempt = {
   activityId: string;
   score: number;
   starsEarned: number;
+  correctAnswersCount: number;
+  brainyCoinsEarned: number;
   completed: boolean;
   hintsUsed: number;
   mistakesCount: number;
@@ -323,11 +340,56 @@ export type ChildBadge = {
   awardedAt: string;
 };
 
+export type UserSubscription = {
+  id: string;
+  accountId: string;
+  planType: SubscriptionPlanType;
+  status: SubscriptionStatus;
+  startsAt?: string;
+  endsAt?: string;
+  paymentProvider?: string;
+  providerCustomerId?: string;
+  providerSubscriptionId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ChildProgress = {
+  childId: string;
+  currentLevel: number;
+  brainyCoinsBalance: number;
+  totalBrainyCoinsEarned: number;
+  totalCorrectAnswers: number;
+  totalCompletedActivities: number;
+  lastActivityAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type RewardDefinition = {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  requiredBrainyCoins: number;
+  rewardType: RewardType;
+  metadata?: Record<string, string | number | boolean>;
+};
+
+export type RewardUnlock = {
+  id: string;
+  childId: string;
+  rewardCode: string;
+  rewardType: RewardType;
+  unlockedAt: string;
+};
+
 export type ActivityCompletionPayload = {
   childId: string;
   activityId: string;
   score: number;
   starsEarned: number;
+  correctAnswersCount: number;
   completed: boolean;
   hintsUsed: number;
   mistakesCount: number;
@@ -340,6 +402,8 @@ export type ActivityOutcome = {
   isCorrect: boolean;
   score: number;
   starsEarned: number;
+  correctAnswersCount: number;
+  questionCount: number;
   mistakesCount: number;
   completed: boolean;
   durationSeconds: number;

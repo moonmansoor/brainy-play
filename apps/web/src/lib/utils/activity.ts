@@ -70,6 +70,8 @@ export function buildOutcome(
     isCorrect,
     score,
     starsEarned: calculateStars(score),
+    correctAnswersCount: isCorrect ? 1 : 0,
+    questionCount: 1,
     mistakesCount,
     completed: isCorrect,
     durationSeconds
@@ -95,6 +97,14 @@ export function buildSessionOutcome(outcomes: ActivityOutcome[]) {
     isCorrect: completedCount === outcomes.length && outcomes.length > 0,
     score: averageScore,
     starsEarned: calculateStars(averageScore),
+    correctAnswersCount: outcomes.reduce(
+      (sum, outcome) => sum + outcome.correctAnswersCount,
+      0
+    ),
+    questionCount: outcomes.reduce(
+      (sum, outcome) => sum + outcome.questionCount,
+      0
+    ),
     mistakesCount: totalMistakes,
     completed: completedCount === outcomes.length && outcomes.length > 0,
     durationSeconds: totalDuration
@@ -113,6 +123,7 @@ export function buildAttemptPayload(input: {
     activityId: input.activity.id,
     score: input.outcome.score,
     starsEarned: input.outcome.starsEarned,
+    correctAnswersCount: input.outcome.correctAnswersCount,
     completed: input.outcome.completed,
     hintsUsed: 0,
     mistakesCount: input.outcome.mistakesCount,

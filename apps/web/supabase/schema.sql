@@ -1,6 +1,19 @@
 create extension if not exists "pgcrypto";
 
 create type public.user_role as enum ('parent', 'admin');
+create type public.subscription_plan_type as enum (
+  'free',
+  'premium-monthly',
+  'premium-yearly'
+);
+create type public.subscription_status as enum (
+  'inactive',
+  'trialing',
+  'active',
+  'past_due',
+  'canceled'
+);
+create type public.reward_type as enum ('mini-game', 'avatar', 'certificate');
 create type public.activity_type as enum (
   'shape-match',
   'count-objects',
@@ -41,11 +54,59 @@ create table if not exists public.children (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.user_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null unique references public.profiles (id) on delete cascade,
+  plan_type public.subscription_plan_type not null default 'free',
+  status public.subscription_status not null default 'inactive',
+  starts_at timestamptz,
+  ends_at timestamptz,
+  payment_provider text,
+  provider_customer_id text,
+  provider_subscription_id text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.child_progress (
+  child_id uuid primary key references public.children (id) on delete cascade,
+  current_level int not null default 1 check (current_level >= 1),
+  brainy_coins_balance int not null default 0 check (brainy_coins_balance >= 0),
+  total_brainy_coins_earned int not null default 0 check (total_brainy_coins_earned >= 0),
+  total_correct_answers int not null default 0 check (total_correct_answers >= 0),
+  total_completed_activities int not null default 0 check (total_completed_activities >= 0),
+  last_activity_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.reward_definitions (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  title text not null,
+  description text not null,
+  required_brainy_coins int not null default 0 check (required_brainy_coins >= 0),
+  reward_type public.reward_type not null,
+  metadata_json jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.child_reward_unlocks (
+  id uuid primary key default gen_random_uuid(),
+  child_id uuid not null references public.children (id) on delete cascade,
+  reward_code text not null references public.reward_definitions (code) on delete cascade,
+  reward_type public.reward_type not null,
+  unlocked_at timestamptz not null default now(),
+  unique (child_id, reward_code)
+);
+
 create table if not exists public.activities (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   slug text not null unique,
   type public.activity_type not null,
+  required_level int not null default 1 check (required_level >= 1),
   age_min int not null check (age_min between 4 and 12),
   age_max int not null check (age_max between 4 and 12),
   difficulty int not null check (difficulty between 1 and 3),
@@ -89,6 +150,8 @@ create table if not exists public.activity_attempts (
   activity_id uuid not null references public.activities (id) on delete cascade,
   score int not null check (score between 0 and 100),
   stars_earned int not null default 0 check (stars_earned between 0 and 3),
+  correct_answers_count int not null default 0 check (correct_answers_count >= 0),
+  brainy_coins_earned int not null default 0 check (brainy_coins_earned >= 0),
   completed boolean not null default false,
   hints_used int not null default 0,
   mistakes_count int not null default 0,
@@ -133,6 +196,21 @@ create trigger children_set_updated_at
 before update on public.children
 for each row execute procedure public.set_updated_at();
 
+drop trigger if exists user_subscriptions_set_updated_at on public.user_subscriptions;
+create trigger user_subscriptions_set_updated_at
+before update on public.user_subscriptions
+for each row execute procedure public.set_updated_at();
+
+drop trigger if exists child_progress_set_updated_at on public.child_progress;
+create trigger child_progress_set_updated_at
+before update on public.child_progress
+for each row execute procedure public.set_updated_at();
+
+drop trigger if exists reward_definitions_set_updated_at on public.reward_definitions;
+create trigger reward_definitions_set_updated_at
+before update on public.reward_definitions
+for each row execute procedure public.set_updated_at();
+
 drop trigger if exists activities_set_updated_at on public.activities;
 create trigger activities_set_updated_at
 before update on public.activities
@@ -145,6 +223,10 @@ for each row execute procedure public.set_updated_at();
 
 alter table public.profiles enable row level security;
 alter table public.children enable row level security;
+alter table public.user_subscriptions enable row level security;
+alter table public.child_progress enable row level security;
+alter table public.reward_definitions enable row level security;
+alter table public.child_reward_unlocks enable row level security;
 alter table public.activities enable row level security;
 alter table public.activity_items enable row level security;
 alter table public.activity_assets enable row level security;
@@ -173,6 +255,73 @@ on public.children
 for all
 using (auth.uid() = parent_id)
 with check (auth.uid() = parent_id);
+
+create policy "parents manage own subscription"
+on public.user_subscriptions
+for all
+using (auth.uid() = account_id)
+with check (auth.uid() = account_id);
+
+create policy "parents view child progress"
+on public.child_progress
+for select
+using (
+  exists (
+    select 1 from public.children c
+    where c.id = child_id and c.parent_id = auth.uid()
+  )
+);
+
+create policy "parents insert child progress"
+on public.child_progress
+for insert
+with check (
+  exists (
+    select 1 from public.children c
+    where c.id = child_id and c.parent_id = auth.uid()
+  )
+);
+
+create policy "parents update child progress"
+on public.child_progress
+for update
+using (
+  exists (
+    select 1 from public.children c
+    where c.id = child_id and c.parent_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1 from public.children c
+    where c.id = child_id and c.parent_id = auth.uid()
+  )
+);
+
+create policy "reward definitions readable to signed in users"
+on public.reward_definitions
+for select
+using (auth.role() = 'authenticated');
+
+create policy "parents view child reward unlocks"
+on public.child_reward_unlocks
+for select
+using (
+  exists (
+    select 1 from public.children c
+    where c.id = child_id and c.parent_id = auth.uid()
+  )
+);
+
+create policy "parents insert child reward unlocks"
+on public.child_reward_unlocks
+for insert
+with check (
+  exists (
+    select 1 from public.children c
+    where c.id = child_id and c.parent_id = auth.uid()
+  )
+);
 
 create policy "published activities are readable"
 on public.activities

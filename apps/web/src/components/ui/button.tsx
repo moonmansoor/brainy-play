@@ -17,13 +17,15 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-        className={cn(
-          baseClassName,
-          variant === "primary" &&
+      className={cn(
+        baseClassName,
+        variant === "primary" &&
           "bg-gradient-to-r from-[#ff8b5f] to-[#ff6e70] text-white shadow-playful hover:-translate-y-0.5 hover:shadow-[0_22px_70px_rgba(255,122,89,0.35)]",
         variant === "secondary" &&
           "bg-white/90 text-ink ring-1 ring-slate-200 hover:bg-white hover:-translate-y-0.5",
         variant === "ghost" && "bg-transparent text-ink hover:bg-white/60",
+        props.disabled &&
+          "cursor-not-allowed opacity-60 hover:translate-y-0 hover:shadow-none",
         className
       )}
       {...props}

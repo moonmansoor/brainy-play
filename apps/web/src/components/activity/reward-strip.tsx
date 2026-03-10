@@ -1,17 +1,26 @@
 import Image from "next/image";
 
 import { Panel } from "@/components/ui/panel";
+import { BRAINY_COIN_LABEL } from "@/lib/constants/game-economy";
 import { getRewardHeadline } from "@/lib/utils/activity";
-import { RewardStyle } from "@/types/activity";
+import { RewardDefinition, RewardStyle } from "@/types/activity";
 
 export function RewardStrip({
   stars,
   rewardStyle,
-  message
+  message,
+  brainyCoinsEarned,
+  currentBalance,
+  didLevelUp,
+  unlockedRewards
 }: {
   stars: number;
   rewardStyle: RewardStyle;
   message: string;
+  brainyCoinsEarned: number;
+  currentBalance: number;
+  didLevelUp?: boolean;
+  unlockedRewards?: RewardDefinition[];
 }) {
   return (
     <Panel className="overflow-hidden bg-gradient-to-r from-[#fff2c3] via-[#ffe3c4] to-[#ffe4f1]">
@@ -26,6 +35,19 @@ export function RewardStrip({
               <span key={index}>{index < stars ? "⭐" : "☆"}</span>
             ))}
           </div>
+          <p className="mt-3 text-sm font-semibold text-slate-700">
+            +{brainyCoinsEarned} {BRAINY_COIN_LABEL}. Balance: {currentBalance}
+          </p>
+          {didLevelUp ? (
+            <p className="mt-2 text-sm font-semibold text-emerald-700">
+              Level up unlocked the next adventure.
+            </p>
+          ) : null}
+          {unlockedRewards?.length ? (
+            <p className="mt-2 text-sm font-semibold text-slate-700">
+              Unlocked: {unlockedRewards.map((reward) => reward.title).join(", ")}
+            </p>
+          ) : null}
         </div>
         <div className="relative h-24 w-24 shrink-0">
           <Image

@@ -9,6 +9,7 @@ import { PatternCompleteGame } from "@/games/pattern-complete/pattern-complete-g
 import { SequenceOrderGame } from "@/games/sequence-order/sequence-order-game";
 import { ShapeMatchGame } from "@/games/shape-match/shape-match-game";
 import { SortGame } from "@/games/sort-game/sort-game";
+import { BRAINY_COIN_LABEL, BRAINY_COIN_RULES } from "@/lib/constants/game-economy";
 import { buildSessionOutcome } from "@/lib/utils/activity";
 import {
   ActivityDefinition,
@@ -122,11 +123,15 @@ export function ActivityEngine({
   );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [outcomes, setOutcomes] = useState<ActivityOutcome[]>([]);
+  const [lastRewardCoins, setLastRewardCoins] = useState(0);
 
   const currentItem = items[currentIndex];
 
   function handleItemComplete(outcome: ActivityOutcome) {
     const nextOutcomes = [...outcomes, outcome];
+    setLastRewardCoins(
+      outcome.correctAnswersCount * BRAINY_COIN_RULES.correctAnswer
+    );
 
     if (currentIndex >= items.length - 1) {
       onComplete(buildSessionOutcome(nextOutcomes));
@@ -149,6 +154,16 @@ export function ActivityEngine({
 
   return (
     <div className="grid gap-6">
+      {lastRewardCoins > 0 ? (
+        <Panel className="bg-gradient-to-r from-amber-100 to-orange-50">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-amber-700">
+            Nice work
+          </p>
+          <p className="mt-2 font-display text-2xl font-semibold text-amber-950">
+            +{lastRewardCoins} {BRAINY_COIN_LABEL}
+          </p>
+        </Panel>
+      ) : null}
       <Panel className="flex flex-wrap items-center justify-between gap-4 bg-white/80">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">

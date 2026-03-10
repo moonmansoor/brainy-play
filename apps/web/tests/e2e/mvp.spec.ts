@@ -17,6 +17,7 @@ test("admin activity sync rejects anonymous requests", async ({ request }) => {
       title: "Test Activity",
       slug: "test-activity",
       type: "shape-match",
+      requiredLevel: 1,
       ageMin: 4,
       ageMax: 6,
       difficulty: 1,
