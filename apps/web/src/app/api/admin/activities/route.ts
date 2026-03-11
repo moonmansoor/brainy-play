@@ -74,7 +74,9 @@ export async function POST(request: Request) {
       thumbnail_url: parsed.data.thumbnailUrl ?? null,
       config_json: {
         ...(parsed.data.settingsConfig ?? {}),
-        templateKey: parsed.data.templateKey
+        templateKey: parsed.data.templateKey,
+        skillAreas: parsed.data.skillAreas ?? [],
+        primarySkillArea: parsed.data.primarySkillArea ?? null
       },
       default_theme_id: parsed.data.defaultThemeId,
       theme_ids: parsed.data.supportedThemeIds,

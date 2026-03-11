@@ -27,6 +27,14 @@ The platform now supports a broader set of interaction models:
 
 Current example activities include shape matching, pattern building, logic sorting, odd one out, sequence ordering, maze direction, connect the logic, code blocks thinking, and word building.
 
+## Adaptive progression
+
+- Activity types now act as reusable gameplay formats instead of fixed 1-2 question packs.
+- Each play session generates a fresh task set for the child’s current skill level.
+- Mastery is tracked per skill area, not just by counting completed activities.
+- If a child has not mastered a skill, the system keeps serving new variations at the same level.
+- Parents can see current level, strengths, and areas that need more practice.
+
 ## Subscription and rewards
 
 - Non-subscribed learners can play normally until the configurable free level cap.

@@ -302,6 +302,12 @@ export async function listChildAttempts(childId: string) {
     activityType: attempt.activity_type as ActivityAttempt["activityType"],
     interactionType: attempt.interaction_type as ActivityAttempt["interactionType"],
     learningAreas: (attempt.learning_areas ?? []) as ActivityAttempt["learningAreas"],
+    skillAreas: (attempt.skill_areas ?? []) as ActivityAttempt["skillAreas"],
+    primarySkillArea:
+      (attempt.primary_skill_area as ActivityAttempt["primarySkillArea"]) ?? undefined,
+    sessionId: attempt.session_id ?? undefined,
+    taskInstanceId: attempt.task_instance_id ?? undefined,
+    generatorSeed: attempt.generator_seed ?? undefined,
     levelPlayed: attempt.level_played,
     difficultySnapshot: attempt.difficulty_snapshot,
     score: attempt.score,
@@ -318,6 +324,15 @@ export async function listChildAttempts(childId: string) {
     learningAreaScores:
       (attempt.learning_area_scores_json as ActivityAttempt["learningAreaScores"]) ??
       {},
+    skillAreaScores:
+      (attempt.skill_area_scores_json as ActivityAttempt["skillAreaScores"]) ?? {},
+    masteryLevelBefore: attempt.mastery_level_before ?? undefined,
+    masteryLevelAfter: attempt.mastery_level_after ?? undefined,
+    masteryScoreBefore: attempt.mastery_score_before ?? undefined,
+    masteryScoreAfter: attempt.mastery_score_after ?? undefined,
+    levelAdvanced: attempt.level_advanced,
+    needsMorePractice:
+      (attempt.needs_more_practice ?? []) as ActivityAttempt["needsMorePractice"],
     startedAt: attempt.started_at,
     finishedAt: attempt.finished_at
   }));

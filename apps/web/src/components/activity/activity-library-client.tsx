@@ -5,8 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityCard } from "@/components/activity/activity-card";
 import { ThemeChip } from "@/components/activity/theme-chip";
 import { Panel } from "@/components/ui/panel";
+import { buildChildSnapshot } from "@/features/progress/progress-utils";
+import { getPrimarySkillArea, getSkillAreaLabel } from "@/features/adaptive-learning/skill-taxonomy";
 import { listActivities } from "@/features/activities/repository";
 import { resolveActiveChild } from "@/features/child-profiles/child-session-client";
+import { listChildAttempts } from "@/features/child-profiles/child-profiles-client";
 import { themePacks } from "@/lib/constants/sample-data";
 import {
   getChildAge,
@@ -14,7 +17,8 @@ import {
   getThemeMatchScore,
   isAgeMatch
 } from "@/lib/utils/activity";
-import { ActivityDefinition, ChildProfile } from "@/types/activity";
+import { loadStoredAttempts } from "@/lib/utils/storage";
+import { ActivityAttempt, ActivityDefinition, ChildProfile } from "@/types/activity";
 
 export function ActivityLibraryClient({
   childId
@@ -23,6 +27,9 @@ export function ActivityLibraryClient({
 }) {
   const [activities, setActivities] = useState<ActivityDefinition[]>([]);
   const [activeChild, setActiveChild] = useState<ChildProfile | null>(null);
+  const [snapshot, setSnapshot] = useState<ReturnType<typeof buildChildSnapshot> | null>(
+    null
+  );
   const [authReady, setAuthReady] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -36,6 +43,24 @@ export function ActivityLibraryClient({
       const resolved = await resolveActiveChild(childId);
       setActiveChild(resolved.child);
       setAuthReady(Boolean(resolved.user));
+
+      if (resolved.child) {
+        const localAttempts = loadStoredAttempts().filter(
+          (attempt) => attempt.childId === resolved.child?.id
+        );
+        let remoteAttempts: ActivityAttempt[] = [];
+
+        try {
+          remoteAttempts = await listChildAttempts(resolved.child.id);
+        } catch {
+          remoteAttempts = [];
+        }
+
+        setSnapshot(buildChildSnapshot(resolved.child, [...localAttempts, ...remoteAttempts], nextActivities));
+      } else {
+        setSnapshot(null);
+      }
+
       setLoading(false);
     }
 
@@ -111,11 +136,23 @@ export function ActivityLibraryClient({
             <h2 className="mt-2 font-display text-3xl font-semibold">
               {activeChild.displayName}&apos;s themed activity library
             </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
               The library now mixes template-based activities across drag, click,
               tracing, typing, sorting, connecting, and early coding play. Cards
               are ordered to fit age, favorite themes, and recommended level.
             </p>
+            {snapshot ? (
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-black uppercase tracking-[0.18em]">
+                <span className="rounded-full bg-white/75 px-4 py-2 text-slate-700">
+                  {snapshot.overallLevelLabel}
+                </span>
+                {snapshot.activePracticeFocus ? (
+                  <span className="rounded-full bg-white/75 px-4 py-2 text-slate-700">
+                    Practicing {getSkillAreaLabel(snapshot.activePracticeFocus.skillArea)}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {themePacks
@@ -131,12 +168,33 @@ export function ActivityLibraryClient({
         <div>
           <h3 className="font-display text-2xl font-semibold">Recommended first</h3>
           <p className="text-sm text-slate-600">
-            Best match for current age and favorite themes.
+            {snapshot?.currentPracticeReason ?? "Best match for current age and favorite themes."}
           </p>
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
           {ready.map((activity) => (
-            <ActivityCard key={activity.id} activity={activity} child={activeChild} />
+            <ActivityCard
+              key={activity.id}
+              activity={activity}
+              child={activeChild}
+              levelLabel={
+                snapshot
+                  ? snapshot.skillProgress.find(
+                      (item) => item.skillArea === getPrimarySkillArea(activity)
+                    )?.levelLabel
+                  : undefined
+              }
+              skillLabel={getSkillAreaLabel(getPrimarySkillArea(activity))}
+              statusLabel={
+                snapshot
+                  ? snapshot.skillProgress.find(
+                      (item) => item.skillArea === getPrimarySkillArea(activity)
+                    )?.status === "needs-support"
+                    ? "Needs more practice"
+                    : undefined
+                  : undefined
+              }
+            />
           ))}
         </div>
       </section>
@@ -150,7 +208,19 @@ export function ActivityLibraryClient({
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
           {stretch.map((activity) => (
-            <ActivityCard key={activity.id} activity={activity} child={activeChild} />
+            <ActivityCard
+              key={activity.id}
+              activity={activity}
+              child={activeChild}
+              levelLabel={
+                snapshot
+                  ? snapshot.skillProgress.find(
+                      (item) => item.skillArea === getPrimarySkillArea(activity)
+                    )?.levelLabel
+                  : undefined
+              }
+              skillLabel={getSkillAreaLabel(getPrimarySkillArea(activity))}
+            />
           ))}
         </div>
       </section>

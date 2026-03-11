@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { ActivityType, InteractionType, LearningArea } from "@/types/activity";
+import {
+  ActivityType,
+  InteractionType,
+  LearningArea,
+  SkillArea
+} from "@/types/activity";
 
 const activityTypeSchema = z.enum([
   "shape-match",
@@ -37,6 +42,18 @@ const learningAreaSchema = z.enum([
   "problem-solving",
   "sequencing",
   "classification"
+]);
+
+const skillAreaSchema = z.enum([
+  "shape-recognition",
+  "pattern-recognition",
+  "sequencing",
+  "sorting-classification",
+  "spatial-reasoning",
+  "logic-reasoning",
+  "memory",
+  "early-coding-logic",
+  "problem-solving"
 ]);
 
 const baseActivitySchema = z.object({
@@ -160,6 +177,8 @@ export const activityDefinitionSchema = z
     difficulty: z.number().int().min(1).max(3),
     recommendedLevel: z.number().int().min(1).max(20),
     learningAreas: z.array(learningAreaSchema).min(1).max(7),
+    skillAreas: z.array(skillAreaSchema).min(1).max(9).optional(),
+    primarySkillArea: skillAreaSchema.optional(),
     instructionsText: z.string().trim().min(6).max(500),
     explanationText: z.string().trim().min(6).max(500),
     funFact: z.string().trim().min(6).max(500),
@@ -186,6 +205,30 @@ export const activityAttemptSchema = z
     activityType: activityTypeSchema,
     interactionType: interactionTypeSchema,
     learningAreas: z.array(learningAreaSchema).min(1).max(7),
+    skillAreas: z.array(skillAreaSchema).min(1).max(9).optional(),
+    primarySkillArea: skillAreaSchema.optional(),
+    sessionId: z.string().trim().min(1).max(200).optional(),
+    taskInstanceId: z.string().trim().min(1).max(200).optional(),
+    generatorSeed: z.string().trim().min(1).max(500).optional(),
+    taskInstance: z
+      .object({
+        id: z.string().trim().min(1).max(200),
+        sessionId: z.string().trim().min(1).max(200),
+        activityId: z.string().trim().min(1).max(120),
+        activityType: activityTypeSchema,
+        childId: z.string().trim().min(1).max(120).optional(),
+        level: z.number().int().min(1).max(20),
+        skillArea: skillAreaSchema,
+        skillAreas: z.array(skillAreaSchema).min(1).max(9),
+        generatorSeed: z.string().trim().min(1).max(500),
+        generatorVersion: z.string().trim().min(1).max(60),
+        generatedAt: isoDateTimeSchema,
+        generatedConfig: z.object({
+          items: z.array(activityItemSchema).min(1).max(100)
+        }),
+        expectedAnswerSnapshot: z.array(jsonValueSchema).min(1).max(100)
+      })
+      .optional(),
     levelPlayed: z.number().int().min(1).max(20),
     difficultySnapshot: z.number().int().min(1).max(3),
     score: z.number().int().min(0).max(100),
@@ -200,6 +243,13 @@ export const activityAttemptSchema = z
     explanationText: z.string().trim().max(500).optional(),
     funFact: z.string().trim().max(500).optional(),
     learningAreaScores: z.record(learningAreaSchema, z.number().min(0).max(100)),
+    skillAreaScores: z.record(skillAreaSchema, z.number().min(0).max(100)).optional(),
+    masteryLevelBefore: z.number().int().min(1).max(50).optional(),
+    masteryLevelAfter: z.number().int().min(1).max(50).optional(),
+    masteryScoreBefore: z.number().min(0).max(100).optional(),
+    masteryScoreAfter: z.number().min(0).max(100).optional(),
+    levelAdvanced: z.boolean().optional(),
+    needsMorePractice: z.array(skillAreaSchema).max(9).optional(),
     startedAt: isoDateTimeSchema,
     finishedAt: isoDateTimeSchema
   })
@@ -466,6 +516,18 @@ export const learningAreaOptions: LearningArea[] = [
   "problem-solving",
   "sequencing",
   "classification"
+];
+
+export const skillAreaOptions: SkillArea[] = [
+  "shape-recognition",
+  "pattern-recognition",
+  "sequencing",
+  "sorting-classification",
+  "spatial-reasoning",
+  "logic-reasoning",
+  "memory",
+  "early-coding-logic",
+  "problem-solving"
 ];
 
 export const interactionTypeOptions: InteractionType[] = [

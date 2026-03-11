@@ -76,6 +76,8 @@ Each activity template defines:
 - generation guidance
 - default explanation text
 - fun fact pool
+- adaptive skill focus
+- level-aware generation guidance
 
 Core template registry:
 
@@ -89,6 +91,37 @@ Renderer registry:
 
 - [`src/features/activities/activity-renderers.tsx`](/Users/munirohmansoor/brainy-play/apps/web/src/features/activities/activity-renderers.tsx)
 
+## Adaptive learning and mastery
+
+The app now supports adaptive session generation on top of the template system.
+
+### How infinite task generation works
+
+- An activity type defines the gameplay format.
+- The adaptive layer picks the child’s current skill level for that format.
+- A task generator creates a fresh session using a seed, level rules, distractors, layouts, and content pools.
+- The same gameplay stays familiar, but the task instance changes between sessions.
+
+Key modules:
+
+- [`src/features/adaptive-learning/task-generator.ts`](/Users/munirohmansoor/brainy-play/apps/web/src/features/adaptive-learning/task-generator.ts)
+- [`src/features/adaptive-learning/mastery.ts`](/Users/munirohmansoor/brainy-play/apps/web/src/features/adaptive-learning/mastery.ts)
+- [`src/features/adaptive-learning/skill-taxonomy.ts`](/Users/munirohmansoor/brainy-play/apps/web/src/features/adaptive-learning/skill-taxonomy.ts)
+
+### How mastery progression works
+
+- Progress is tracked per skill area such as pattern recognition, sequencing, spatial reasoning, sorting/classification, logic reasoning, memory, and early coding logic.
+- A child stays on the current level until recent performance shows enough mastery.
+- Mastery uses a simple blend of accuracy, completion consistency, mistakes, and time.
+- When mastery is strong enough, the next level becomes the target for the next generated session.
+
+### How weakness tracking works
+
+- Each attempt now stores skill-level metadata and mastery snapshots.
+- Weakness is modeled as “needs more practice,” not failure.
+- Parent views can surface low-mastery skills and recommend more focused practice.
+- The child experience keeps the messaging positive with level labels such as `Level 3 Pattern Builder`.
+
 ## Learning and progress tracking
 
 Attempts now track more than score alone. The model supports:
@@ -96,8 +129,11 @@ Attempts now track more than score alone. The model supports:
 - activity type
 - interaction type
 - learning areas
+- skill areas
 - level played
 - difficulty snapshot
+- task instance metadata
+- mastery before and after
 - success rate
 - correct answers
 - total prompts
@@ -123,7 +159,9 @@ The Supabase schema now includes support for:
 
 - `activity_templates`
 - richer `activities` metadata
+- `generated_task_instances`
 - richer `activity_attempts` analytics fields
+- `child_skill_progress`
 - subscription and reward tables used by the monetization and progression layer
 
 Schema source:
@@ -138,7 +176,8 @@ Schema source:
 4. Implement the playable component in `src/games/...`.
 5. Register the renderer in [`src/features/activities/activity-renderers.tsx`](/Users/munirohmansoor/brainy-play/apps/web/src/features/activities/activity-renderers.tsx).
 6. Add sample or seeded content in [`src/lib/constants/sample-data.ts`](/Users/munirohmansoor/brainy-play/apps/web/src/lib/constants/sample-data.ts).
-7. If needed, extend persistence mapping in the API/repository layer.
+7. If the activity should adapt by mastery, extend the generator rules in [`src/features/adaptive-learning/task-generator.ts`](/Users/munirohmansoor/brainy-play/apps/web/src/features/adaptive-learning/task-generator.ts).
+8. If needed, extend persistence mapping in the API/repository layer.
 
 ## Notes
 

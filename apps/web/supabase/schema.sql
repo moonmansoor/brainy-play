@@ -119,6 +119,23 @@ create table if not exists public.activity_items (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.generated_task_instances (
+  id uuid primary key default gen_random_uuid(),
+  session_id text not null unique,
+  activity_id uuid not null references public.activities (id) on delete cascade,
+  child_id uuid references public.children (id) on delete cascade,
+  activity_type public.activity_type not null,
+  skill_area text not null,
+  skill_areas text[] not null default '{}',
+  level int not null default 1 check (level >= 1),
+  generator_seed text not null,
+  generator_version text not null,
+  generated_config_json jsonb not null default '{}'::jsonb,
+  expected_answer_json jsonb not null default '[]'::jsonb,
+  generated_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.activity_attempts (
   id uuid primary key default gen_random_uuid(),
   child_id uuid not null references public.children (id) on delete cascade,
@@ -126,6 +143,11 @@ create table if not exists public.activity_attempts (
   activity_type public.activity_type not null,
   interaction_type public.interaction_type not null,
   learning_areas text[] not null default '{}',
+  skill_areas text[] not null default '{}',
+  primary_skill_area text,
+  session_id text,
+  task_instance_id uuid references public.generated_task_instances (id) on delete set null,
+  generator_seed text,
   level_played int not null default 1 check (level_played >= 1),
   difficulty_snapshot int not null default 1 check (difficulty_snapshot between 1 and 3),
   score int not null check (score between 0 and 100),
@@ -140,8 +162,36 @@ create table if not exists public.activity_attempts (
   explanation_text text,
   fun_fact text,
   learning_area_scores_json jsonb not null default '{}'::jsonb,
+  skill_area_scores_json jsonb not null default '{}'::jsonb,
+  mastery_level_before int check (mastery_level_before >= 1),
+  mastery_level_after int check (mastery_level_after >= 1),
+  mastery_score_before numeric(5,2) check (mastery_score_before between 0 and 100),
+  mastery_score_after numeric(5,2) check (mastery_score_after between 0 and 100),
+  level_advanced boolean not null default false,
+  needs_more_practice text[] not null default '{}',
   started_at timestamptz not null,
   finished_at timestamptz not null
+);
+
+create table if not exists public.child_skill_progress (
+  id uuid primary key default gen_random_uuid(),
+  child_id uuid not null references public.children (id) on delete cascade,
+  skill_area text not null,
+  current_level int not null default 1 check (current_level >= 1),
+  mastery_score numeric(5,2) not null default 0 check (mastery_score between 0 and 100),
+  attempts_at_current_level int not null default 0 check (attempts_at_current_level >= 0),
+  successful_attempts_at_current_level int not null default 0 check (successful_attempts_at_current_level >= 0),
+  average_success_rate numeric(5,2) not null default 0 check (average_success_rate between 0 and 100),
+  average_mistakes numeric(5,2) not null default 0,
+  average_duration_seconds numeric(8,2) not null default 0,
+  weakness_score numeric(5,2) not null default 0 check (weakness_score between 0 and 100),
+  status text not null default 'new',
+  level_label text not null,
+  positive_summary text not null,
+  next_goal text not null,
+  last_practiced_at timestamptz,
+  updated_at timestamptz not null default now(),
+  unique (child_id, skill_area)
 );
 
 create table if not exists public.badges (
@@ -201,7 +251,9 @@ alter table public.activity_templates enable row level security;
 alter table public.activities enable row level security;
 alter table public.activity_items enable row level security;
 alter table public.activity_assets enable row level security;
+alter table public.generated_task_instances enable row level security;
 alter table public.activity_attempts enable row level security;
+alter table public.child_skill_progress enable row level security;
 alter table public.badges enable row level security;
 alter table public.child_badges enable row level security;
 
@@ -342,6 +394,54 @@ create policy "parents view attempts for own children"
 on public.activity_attempts
 for select
 using (
+  exists (
+    select 1 from public.children c
+    where c.id = child_id and c.parent_id = auth.uid()
+  )
+);
+
+create policy "parents store generated tasks for own children"
+on public.generated_task_instances
+for insert
+with check (
+  child_id is null
+  or exists (
+    select 1 from public.children c
+    where c.id = child_id and c.parent_id = auth.uid()
+  )
+);
+
+create policy "parents view generated tasks for own children"
+on public.generated_task_instances
+for select
+using (
+  child_id is null
+  or exists (
+    select 1 from public.children c
+    where c.id = child_id and c.parent_id = auth.uid()
+  )
+);
+
+create policy "parents view child skill progress"
+on public.child_skill_progress
+for select
+using (
+  exists (
+    select 1 from public.children c
+    where c.id = child_id and c.parent_id = auth.uid()
+  )
+);
+
+create policy "parents manage child skill progress"
+on public.child_skill_progress
+for all
+using (
+  exists (
+    select 1 from public.children c
+    where c.id = child_id and c.parent_id = auth.uid()
+  )
+)
+with check (
   exists (
     select 1 from public.children c
     where c.id = child_id and c.parent_id = auth.uid()
