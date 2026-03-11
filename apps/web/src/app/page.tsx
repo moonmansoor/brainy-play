@@ -12,8 +12,8 @@ const pillars = [
     body: "Shape match, counting, and pattern games use one typed activity model."
   },
   {
-    title: "Parent accounts and storage",
-    body: "Email/password auth, child profiles, and persistent learner selection are ready for future progress tracking."
+    title: "Child-first dashboard",
+    body: "Parents help with setup, but the main product flow centers on the child’s learning, level, and progress."
   }
 ];
 
@@ -21,18 +21,18 @@ export default function HomePage() {
   return (
     <AppShell
       heading="Playful logic learning for young beginners."
-      subheading="This MVP now includes parent authentication, persistent child profile storage, a reusable activity engine, backend-ready attempts, and a themed learning experience."
+      subheading="This MVP now includes parent-assisted sign-in, child profiles, adaptive activities, and a child-first learning dashboard."
       actions={
         <>
           <LinkButton href="/auth/register">Create parent account</LinkButton>
           <LinkButton href="/auth/login" variant="secondary">
             Parent login
           </LinkButton>
-          <LinkButton href="/child" variant="ghost">
-            Child profiles
+          <LinkButton href="/child/activities" variant="ghost">
+            Open learning
           </LinkButton>
-          <LinkButton href="/admin" variant="secondary">
-            Open admin
+          <LinkButton href="/dashboard" variant="secondary">
+            Open dashboard
           </LinkButton>
         </>
       }

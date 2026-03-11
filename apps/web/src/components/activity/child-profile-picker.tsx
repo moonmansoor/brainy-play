@@ -103,7 +103,7 @@ export function ChildProfilePicker({
       router.push(
         destination === "activities"
           ? `/child/activities?childId=${selectedChild.id}`
-          : `/parent?childId=${selectedChild.id}`
+          : `/dashboard?childId=${selectedChild.id}`
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not open child session.");

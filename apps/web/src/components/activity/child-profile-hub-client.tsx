@@ -43,6 +43,7 @@ export function ChildProfileHubClient() {
     schoolStandard: schoolStandards[0]
   });
   const isLocalDemoMode = !getSupabaseBrowserClient();
+  const canCreateChildProfile = children.length === 0;
 
   async function loadData() {
     setLoading(true);
@@ -130,7 +131,7 @@ export function ChildProfileHubClient() {
     setMessage(
       destination === "activities"
         ? "Child session started."
-        : "Opening parent progress."
+        : "Opening learning dashboard."
     );
   }
 
@@ -185,8 +186,8 @@ export function ChildProfileHubClient() {
             {parent.fullName || parent.email}
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-700">
-            Create and manage child profiles, then select a learner before opening
-            the activity interface.
+            This account supports one child profile. After setup, select the learner
+            to open the activity interface.
           </p>
         </div>
         <BrandLogo size="md" />
@@ -202,77 +203,93 @@ export function ChildProfileHubClient() {
         </Button>
       </Panel>
 
-      <Panel>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
-              Create child profile
-            </p>
-            <h3 className="mt-2 font-display text-2xl font-semibold">
-              Add a learner
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-slate-700">
-              Store only the minimum needed to personalize learning and support
-              future progress tracking.
-            </p>
-          </div>
-          <div className="grid gap-3">
-            <input
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
-              placeholder="Display name"
-              value={formState.displayName}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  displayName: event.target.value
-                }))
-              }
-            />
-            <input
-              type="date"
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
-              value={formState.birthDate}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  birthDate: event.target.value
-                }))
-              }
-            />
-            <input
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
-              placeholder="School name (optional)"
-              value={formState.schoolName}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  schoolName: event.target.value
-                }))
-              }
-            />
-            <select
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
-              value={formState.schoolStandard}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  schoolStandard: event.target.value
-                }))
-              }
-            >
-              {schoolStandards.map((standard) => (
-                <option key={standard} value={standard}>
-                  {standard}
-                </option>
-              ))}
-            </select>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button onClick={handleCreateChildProfile}>Create child profile</Button>
-              {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {canCreateChildProfile ? (
+        <Panel>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+                Create child profile
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold">
+                Add a learner
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                Store only the minimum needed to personalize learning and support
+                future progress tracking.
+              </p>
+            </div>
+            <div className="grid gap-3">
+              <input
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                placeholder="Display name"
+                value={formState.displayName}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    displayName: event.target.value
+                  }))
+                }
+              />
+              <input
+                type="date"
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                value={formState.birthDate}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    birthDate: event.target.value
+                  }))
+                }
+              />
+              <input
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                placeholder="School name (optional)"
+                value={formState.schoolName}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    schoolName: event.target.value
+                  }))
+                }
+              />
+              <select
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                value={formState.schoolStandard}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    schoolStandard: event.target.value
+                  }))
+                }
+              >
+                {schoolStandards.map((standard) => (
+                  <option key={standard} value={standard}>
+                    {standard}
+                  </option>
+                ))}
+              </select>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button onClick={handleCreateChildProfile}>Create child profile</Button>
+                {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+              </div>
             </div>
           </div>
-        </div>
-      </Panel>
+        </Panel>
+      ) : (
+        <Panel className="border border-dashed border-slate-200 bg-slate-50/80">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+            Child profile ready
+          </p>
+          <h3 className="mt-2 font-display text-2xl font-semibold">
+            This account already has a learner
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-slate-700">
+            One parent login supports one email and one child profile, so the
+            create form is hidden after setup.
+          </p>
+          {message ? <p className="mt-3 text-sm text-slate-600">{message}</p> : null}
+        </Panel>
+      )}
 
       <ChildProfilePicker
         childProfiles={children}

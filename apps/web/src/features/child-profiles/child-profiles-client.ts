@@ -154,10 +154,25 @@ export async function createChildProfile(
 
   const supabase = getSupabaseBrowserClient();
   if (!supabase) {
-    getScopedLocalChildren(parentId);
+    const scoped = getScopedLocalChildren(parentId);
+    if (scoped.children.length > 0) {
+      throw new Error("This parent account already has a child profile.");
+    }
+
     const nextChild = buildLocalChildProfile(parentId, parsedInput.data);
     saveLocalChildProfiles([...loadLocalChildProfiles(), nextChild]);
     return nextChild;
+  }
+
+  const { data: existingChildren, error: existingChildrenError } = await supabase
+    .from("children")
+    .select("id")
+    .eq("parent_id", parentId)
+    .limit(1);
+
+  if (existingChildrenError) throw existingChildrenError;
+  if ((existingChildren ?? []).length > 0) {
+    throw new Error("This parent account already has a child profile.");
   }
 
   const { data, error } = await supabase
