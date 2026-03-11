@@ -166,7 +166,7 @@ export function MascotBrain({
         )}
       >
         <Image
-          src="/assets/mascot/brainy-base.png"
+          src="/mascot/brainy-mascot.png"
           alt={meta.alt}
           width={1024}
           height={1536}
