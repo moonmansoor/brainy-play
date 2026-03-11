@@ -148,18 +148,56 @@ export function MascotBrain({
   reverse?: boolean;
 }) {
   const meta = stateMeta[state];
+  const bubble = message ? (
+    <div
+      className={cn(
+        "relative z-0 self-start pt-2 sm:self-center",
+        reverse ? "translate-x-2 sm:translate-x-3" : "-translate-x-2 sm:-translate-x-3"
+      )}
+    >
+      <div
+        aria-hidden="true"
+        className={cn(
+          "absolute top-7 h-0 w-0",
+          reverse
+            ? "right-[-14px] border-b-[12px] border-l-[16px] border-t-[12px] border-b-transparent border-t-transparent border-l-white/90"
+            : "left-[-14px] border-b-[12px] border-r-[16px] border-t-[12px] border-b-transparent border-r-white/90 border-t-transparent"
+        )}
+      />
+      <div
+        aria-hidden="true"
+        className={cn(
+          "absolute top-[1.95rem] h-0 w-0",
+          reverse
+            ? "right-[-11px] border-b-[10px] border-l-[13px] border-t-[10px] border-b-transparent border-t-transparent"
+            : "left-[-11px] border-b-[10px] border-r-[13px] border-t-[10px] border-b-transparent border-t-transparent",
+          meta.bubbleClassName
+        )}
+      />
+      <div
+        className={cn(
+          "relative max-w-[15rem] rounded-[1.5rem] border border-white/80 bg-gradient-to-br px-4 py-3 text-sm font-semibold leading-6 shadow-playful sm:max-w-sm",
+          meta.bubbleClassName,
+          messageClassName
+        )}
+      >
+        {message}
+      </div>
+    </div>
+  ) : null;
 
   return (
     <div
       className={cn(
-        "flex items-center gap-3 sm:gap-4",
-        reverse && "flex-row-reverse",
+        "inline-grid items-start sm:items-center",
+        reverse ? "grid-cols-[minmax(0,16rem)_auto]" : "grid-cols-[auto_minmax(0,16rem)]",
         className
       )}
     >
+      {reverse ? bubble : null}
       <div
         className={cn(
-          "relative shrink-0",
+          "relative z-10 shrink-0",
           sizeClassName[size],
           animationClassName[animation],
           imageClassName
@@ -176,28 +214,7 @@ export function MascotBrain({
         />
         <MascotOverlay state={state} />
       </div>
-      {message ? (
-        <div className="relative flex items-center">
-          <div
-            aria-hidden="true"
-            className={cn(
-              "absolute top-1/2 h-4 w-4 -translate-y-1/2 rotate-45 border border-white/80 bg-white shadow-playful",
-              reverse
-                ? "-right-1 border-b-0 border-l-0"
-                : "-left-1 border-r-0 border-t-0"
-            )}
-          />
-          <div
-            className={cn(
-              "relative max-w-sm rounded-[1.5rem] border border-white/80 bg-gradient-to-br px-4 py-3 text-sm font-semibold shadow-playful",
-              meta.bubbleClassName,
-              messageClassName
-            )}
-          >
-            {message}
-          </div>
-        </div>
-      ) : null}
+      {!reverse ? bubble : null}
     </div>
   );
 }
