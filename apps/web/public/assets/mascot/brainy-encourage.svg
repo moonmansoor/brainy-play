@@ -1,9 +1,0 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <ellipse cx="256" cy="448" rx="138" ry="24" fill="#D7E7F1"/>
-  <image href="/assets/mascot/brainy-base.png" x="6" y="-80" width="500" height="750" preserveAspectRatio="xMidYMid meet"/>
-  <path d="M168 192C182 180 198 180 214 190" stroke="#11163D" stroke-width="10" stroke-linecap="round"/>
-  <path d="M297 190C313 178 329 179 343 192" stroke="#11163D" stroke-width="10" stroke-linecap="round"/>
-  <path d="M94 254C94 223 119 198 150 198H198C222 198 242 218 242 242C242 266 222 286 198 286H162L126 311L138 286C113 282 94 270 94 254Z" fill="#FFFFFF" stroke="#11163D" stroke-width="8"/>
-  <path d="M131 240L148 257L189 223" stroke="#66D4AE" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M383 283C369 263 345 257 327 269C311 279 309 302 322 316C340 335 383 345 383 345C383 345 426 335 444 316C457 302 455 279 439 269C421 257 397 263 383 283Z" fill="#FF8AA5" stroke="#11163D" stroke-width="8"/>
-</svg>
