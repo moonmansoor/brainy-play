@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { ActivityEngine } from "@/components/activity/activity-engine";
 import { RewardStrip } from "@/components/activity/reward-strip";
+import { MascotBrain } from "@/components/brand/mascot-brain";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { buildAdaptiveActivitySession } from "@/features/adaptive-learning/task-generator";
@@ -230,6 +231,14 @@ export function ActivityPlayerClient({
                 </span>
               ) : null}
             </div>
+            <div className="mt-5">
+              <MascotBrain
+                state="teaching"
+                animation="float"
+                size="sm"
+                message="Brainy will show the steps, cheer you on, and keep every challenge playful."
+              />
+            </div>
           </div>
           <div className="relative min-h-56 overflow-hidden rounded-[2rem] border border-white/60 bg-white/40">
             <Image
@@ -282,6 +291,16 @@ export function ActivityPlayerClient({
                 </p>
               ) : null}
             </div>
+            <MascotBrain
+              state={completionPayload?.levelAdvanced ? "celebrating" : "happy"}
+              animation={completionPayload?.levelAdvanced ? "bounce" : "float"}
+              size="sm"
+              message={
+                completionPayload?.levelAdvanced
+                  ? "Brainy says you unlocked the next level."
+                  : "Brainy says keep going, you are building strong thinking skills."
+              }
+            />
             <div className="flex flex-wrap gap-3">
               <LinkButton
                 href={`/child/activities?childId=${activeChild.id}`}
@@ -306,6 +325,14 @@ export function ActivityPlayerClient({
             <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-700">
               What you learned
             </p>
+            <div className="mt-3">
+              <MascotBrain
+                state="teaching"
+                size="sm"
+                animation="float"
+                message="Brainy turns every activity into a coding-thinking lesson."
+              />
+            </div>
             <p className="mt-3 text-sm leading-6 text-slate-700">
               {session?.explanationText ?? activity.explanationText}
             </p>
@@ -314,6 +341,14 @@ export function ActivityPlayerClient({
             <p className="text-xs font-black uppercase tracking-[0.24em] text-violet-700">
               Fun fact
             </p>
+            <div className="mt-3">
+              <MascotBrain
+                state="thinking"
+                size="sm"
+                animation="float"
+                message="Brainy loves sharing curious facts to make learning memorable."
+              />
+            </div>
             <p className="mt-3 text-sm leading-6 text-slate-700">
               {session?.funFact ?? activity.funFact}
             </p>

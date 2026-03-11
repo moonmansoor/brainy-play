@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 
+import { MascotBrain } from "@/components/brand/mascot-brain";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { buildOutcome } from "@/lib/utils/activity";
@@ -119,9 +120,14 @@ export function WordBuilderGame({
           </Button>
         </div>
         {feedback ? (
-          <div className="mt-4 rounded-[1.5rem] bg-red-50 p-4 text-sm text-red-700">
-            {feedback}
-          </div>
+          <Panel className="mt-4 bg-red-50 p-4 text-sm text-red-700">
+            <MascotBrain
+              state="encouraging"
+              size="sm"
+              animation="float"
+              message={feedback}
+            />
+          </Panel>
         ) : null}
       </Panel>
     </div>

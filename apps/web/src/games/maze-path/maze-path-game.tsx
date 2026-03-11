@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 
+import { MascotBrain } from "@/components/brand/mascot-brain";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { buildOutcome } from "@/lib/utils/activity";
@@ -198,9 +199,14 @@ export function MazePathGame({
           </Button>
         </div>
         {feedback ? (
-          <div className="mt-4 rounded-[1.5rem] bg-orange-50 p-4 text-sm text-orange-700">
-            {feedback}
-          </div>
+          <Panel className="mt-4 bg-orange-50 text-sm text-orange-700">
+            <MascotBrain
+              state="encouraging"
+              size="sm"
+              animation="float"
+              message={feedback}
+            />
+          </Panel>
         ) : null}
       </Panel>
     </div>

@@ -4,9 +4,14 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Code for Beginner",
+  title: "Brainy Play",
   description:
-    "A child-friendly logic learning MVP with activity engine, parent progress, and admin content tools."
+    "Brainy Play is a child-friendly logic learning app with playful activities, parent visibility, and adaptive progression.",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png"
+  }
 };
 
 export default function RootLayout({

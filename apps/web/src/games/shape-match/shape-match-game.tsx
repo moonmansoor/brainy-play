@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 
+import { MascotBrain } from "@/components/brand/mascot-brain";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { ShapeToken } from "@/components/activity/shape-token";
@@ -136,6 +137,12 @@ export function ShapeMatchGame({
                 Follow {themePack.mascotName}&apos;s hint and match the same shape.
               </p>
             </div>
+            <MascotBrain
+              state="encouraging"
+              size="sm"
+              animation="float"
+              message="Brainy says look at the clue shape first, then try one more time."
+            />
             <Button variant="secondary" onClick={() => setSelectedId(null)}>
               Choose another card
             </Button>

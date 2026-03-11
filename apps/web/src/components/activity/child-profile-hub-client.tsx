@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { ChildProfilePicker } from "@/components/activity/child-profile-picker";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
@@ -188,6 +189,7 @@ export function ChildProfileHubClient() {
             the activity interface.
           </p>
         </div>
+        <BrandLogo size="md" />
         <Button
           variant="secondary"
           onClick={async () => {
