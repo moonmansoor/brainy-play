@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { MascotBrain } from "@/components/brand/mascot-brain";
@@ -15,20 +18,37 @@ export function AppShell({
   subheading?: string;
   actions?: ReactNode;
 }) {
+  const pathname = usePathname();
+  const navItems = [
+    { href: "/child", label: "Child" },
+    { href: "/parent", label: "Parent" },
+    { href: "/admin", label: "Admin" }
+  ];
+
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
         <BrandLogo size="sm" linked priority />
         <nav className="flex items-center gap-1 rounded-full bg-white/70 p-1 text-sm font-semibold shadow-playful backdrop-blur sm:gap-2">
-          <Link className="rounded-full px-4 py-2 hover:bg-white" href="/child">
-            Child
-          </Link>
-          <Link className="rounded-full px-4 py-2 hover:bg-white" href="/parent">
-            Parent
-          </Link>
-          <Link className="rounded-full px-4 py-2 hover:bg-white" href="/admin">
-            Admin
-          </Link>
+          {navItems.map((item) => {
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+            return (
+              <Link
+                key={item.href}
+                className={`rounded-full px-4 py-2 transition-colors ${
+                  isActive
+                    ? "bg-orange-500 text-white shadow-sm ring-2 ring-orange-200"
+                    : "text-slate-700 hover:bg-white"
+                }`}
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
       </header>
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-12 sm:px-6 lg:px-8">
