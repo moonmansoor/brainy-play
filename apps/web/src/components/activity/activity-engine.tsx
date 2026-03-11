@@ -16,18 +16,27 @@ import {
 
 export function ActivityEngine({
   activity,
+  items: providedItems,
+  levelLabel,
+  focusLabel,
   visualTheme,
   themePack,
   onComplete
 }: {
   activity: ActivityDefinition;
+  items?: ActivityDefinition["items"];
+  levelLabel?: string;
+  focusLabel?: string;
   visualTheme: ActivityDefinition["visualThemes"][number];
   themePack: ThemePack;
   onComplete: (outcome: ActivityOutcome) => void;
 }) {
   const items = useMemo(
-    () => [...activity.items].sort((left, right) => left.orderIndex - right.orderIndex),
-    [activity.items]
+    () =>
+      [...(providedItems ?? activity.items)].sort(
+        (left, right) => left.orderIndex - right.orderIndex
+      ),
+    [activity.items, providedItems]
   );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [outcomes, setOutcomes] = useState<ActivityOutcome[]>([]);
@@ -67,8 +76,9 @@ export function ActivityEngine({
             Question {currentIndex + 1} of {items.length}
           </h3>
           <p className="mt-2 text-sm text-slate-600">
-            {getActivityInteractionLabel(activity.interactionType)} •{" "}
-            {activity.learningAreas.join(", ")}
+            {levelLabel ? `${levelLabel} • ` : ""}
+            {focusLabel ? `${focusLabel} • ` : ""}
+            {getActivityInteractionLabel(activity.interactionType)} • {activity.learningAreas.join(", ")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

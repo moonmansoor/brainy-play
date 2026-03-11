@@ -15,10 +15,16 @@ import { ActivityDefinition, ChildProfile } from "@/types/activity";
 
 export function ActivityCard({
   activity,
-  child
+  child,
+  levelLabel,
+  skillLabel,
+  statusLabel
 }: {
   activity: ActivityDefinition;
   child: ChildProfile;
+  levelLabel?: string;
+  skillLabel?: string;
+  statusLabel?: string;
 }) {
   const readyForAge = isAgeMatch(activity, getChildAge(child));
   const visualTheme = getActivityVisualTheme(activity, child);
@@ -77,8 +83,13 @@ export function ActivityCard({
               {getActivityInteractionLabel(activity.interactionType)}
             </span>
             <span className="rounded-full bg-amber-100 px-3 py-2 text-amber-700">
-              Level {activity.recommendedLevel}
+              {levelLabel ?? `Level ${activity.recommendedLevel}`}
             </span>
+            {skillLabel ? (
+              <span className="rounded-full bg-lime-100 px-3 py-2 text-lime-700">
+                {skillLabel}
+              </span>
+            ) : null}
             <span
               className={`rounded-full px-3 py-2 ${
                 readyForAge
@@ -86,7 +97,7 @@ export function ActivityCard({
                   : "bg-slate-100 text-slate-600"
               }`}
             >
-              {readyForAge ? "Ready now" : "Stretch activity"}
+              {statusLabel ?? (readyForAge ? "Ready now" : "Stretch activity")}
             </span>
           </div>
         </div>

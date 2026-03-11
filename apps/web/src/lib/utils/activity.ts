@@ -4,6 +4,12 @@ import {
   getDifficultyForLevel
 } from "@/features/activities/template-registry";
 import {
+  evaluateSkillProgress,
+  getNeedsPractice
+} from "@/features/adaptive-learning/mastery";
+import {
+  AdaptiveActivitySession,
+  ActivityAttempt,
   ActivityCompletionPayload,
   ActivityDefinition,
   ActivityOutcome,
@@ -138,19 +144,38 @@ export function buildAttemptPayload(input: {
   outcome: ActivityOutcome;
   startedAt: string;
   finishedAt: string;
+  session?: AdaptiveActivitySession;
+  priorAttempts?: ActivityAttempt[];
 }): ActivityCompletionPayload {
   const difficultySnapshot = Math.max(
     input.activity.difficulty,
-    getDifficultyForLevel(input.activity.recommendedLevel)
+    getDifficultyForLevel(input.session?.currentLevel ?? input.activity.recommendedLevel)
   );
-
-  return {
+  const levelPlayed = input.session?.currentLevel ?? input.activity.recommendedLevel;
+  const skillAreas = input.session?.skillAreas ?? input.activity.skillAreas ?? [];
+  const primarySkillArea =
+    input.session?.skillArea ?? input.activity.primarySkillArea ?? skillAreas[0];
+  const learningAreaScores = buildLearningAreaScores(
+    input.activity.learningAreas,
+    input.outcome.successRate
+  );
+  const skillAreaScores =
+    skillAreas.length > 0
+      ? skillAreas.reduce((scores, area) => ({ ...scores, [area]: input.outcome.successRate }), {})
+      : undefined;
+  const draftAttempt: ActivityAttempt = {
+    id: input.session?.taskInstance.id ?? "draft-attempt",
     childId: input.child.id,
     activityId: input.activity.id,
     activityType: input.activity.type,
     interactionType: input.activity.interactionType,
     learningAreas: input.activity.learningAreas,
-    levelPlayed: input.activity.recommendedLevel,
+    skillAreas,
+    primarySkillArea,
+    sessionId: input.session?.sessionId,
+    taskInstanceId: input.session?.taskInstance.id,
+    generatorSeed: input.session?.taskInstance.generatorSeed,
+    levelPlayed,
     difficultySnapshot,
     score: input.outcome.score,
     successRate: input.outcome.successRate,
@@ -161,12 +186,62 @@ export function buildAttemptPayload(input: {
     hintsUsed: 0,
     mistakesCount: input.outcome.mistakesCount,
     durationSeconds: input.outcome.durationSeconds,
-    explanationText: input.activity.explanationText,
-    funFact: input.activity.funFact,
-    learningAreaScores: buildLearningAreaScores(
-      input.activity.learningAreas,
-      input.outcome.successRate
-    ),
+    explanationText: input.session?.explanationText ?? input.activity.explanationText,
+    funFact: input.session?.funFact ?? input.activity.funFact,
+    learningAreaScores,
+    skillAreaScores,
+    masteryLevelBefore: input.session?.masteryBefore.currentLevel,
+    masteryScoreBefore: input.session?.masteryBefore.masteryScore,
+    startedAt: input.startedAt,
+    finishedAt: input.finishedAt
+  };
+  const attemptsForMastery = [...(input.priorAttempts ?? []), draftAttempt];
+  const masteryAfter =
+    primarySkillArea
+      ? evaluateSkillProgress(input.child.id, primarySkillArea, attemptsForMastery)
+      : undefined;
+  const needsMorePractice = getNeedsPractice(
+    primarySkillArea && masteryAfter
+      ? [masteryAfter]
+      : []
+  ).map((progress) => progress.skillArea);
+
+  return {
+    childId: input.child.id,
+    activityId: input.activity.id,
+    activityType: input.activity.type,
+    interactionType: input.activity.interactionType,
+    learningAreas: input.activity.learningAreas,
+    skillAreas,
+    primarySkillArea,
+    sessionId: input.session?.sessionId,
+    taskInstance: input.session?.taskInstance,
+    taskInstanceId: input.session?.taskInstance.id,
+    generatorSeed: input.session?.taskInstance.generatorSeed,
+    levelPlayed,
+    difficultySnapshot,
+    score: input.outcome.score,
+    successRate: input.outcome.successRate,
+    correctAnswersCount: input.outcome.correctAnswersCount,
+    totalQuestions: input.outcome.totalQuestions,
+    starsEarned: input.outcome.starsEarned,
+    completed: input.outcome.completed,
+    hintsUsed: 0,
+    mistakesCount: input.outcome.mistakesCount,
+    durationSeconds: input.outcome.durationSeconds,
+    explanationText: input.session?.explanationText ?? input.activity.explanationText,
+    funFact: input.session?.funFact ?? input.activity.funFact,
+    learningAreaScores,
+    skillAreaScores,
+    masteryLevelBefore: input.session?.masteryBefore.currentLevel,
+    masteryLevelAfter: masteryAfter?.currentLevel,
+    masteryScoreBefore: input.session?.masteryBefore.masteryScore,
+    masteryScoreAfter: masteryAfter?.masteryScore,
+    levelAdvanced:
+      masteryAfter !== undefined &&
+      input.session !== undefined &&
+      masteryAfter.currentLevel > input.session.masteryBefore.currentLevel,
+    needsMorePractice,
     startedAt: input.startedAt,
     finishedAt: input.finishedAt
   };

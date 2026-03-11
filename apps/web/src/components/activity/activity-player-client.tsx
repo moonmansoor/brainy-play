@@ -8,10 +8,15 @@ import { ActivityEngine } from "@/components/activity/activity-engine";
 import { RewardStrip } from "@/components/activity/reward-strip";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
+import { buildAdaptiveActivitySession } from "@/features/adaptive-learning/task-generator";
+import { getSkillAreaLabel } from "@/features/adaptive-learning/skill-taxonomy";
 import { getActivityBySlug } from "@/features/activities/repository";
 import { getActivityInteractionLabel } from "@/features/activities/template-registry";
 import { resolveActiveChild } from "@/features/child-profiles/child-session-client";
-import { markChildLastLogin } from "@/features/child-profiles/child-profiles-client";
+import {
+  listChildAttempts,
+  markChildLastLogin
+} from "@/features/child-profiles/child-profiles-client";
 import {
   buildAttemptPayload,
   formatDifficulty,
@@ -20,8 +25,10 @@ import {
   getChildThemePreferences,
   getThemePack
 } from "@/lib/utils/activity";
-import { saveAttemptLocally } from "@/lib/utils/storage";
+import { loadStoredAttempts, saveAttemptLocally } from "@/lib/utils/storage";
 import {
+  ActivityAttempt,
+  AdaptiveActivitySession,
   ActivityCompletionPayload,
   ActivityDefinition,
   ActivityOutcome,
@@ -37,8 +44,12 @@ export function ActivityPlayerClient({
 }) {
   const [activity, setActivity] = useState<ActivityDefinition | null>(null);
   const [activeChild, setActiveChild] = useState<ChildProfile | null>(null);
+  const [session, setSession] = useState<AdaptiveActivitySession | null>(null);
+  const [attempts, setAttempts] = useState<ActivityAttempt[]>([]);
   const [authReady, setAuthReady] = useState(false);
   const [completion, setCompletion] = useState<ActivityOutcome | null>(null);
+  const [completionPayload, setCompletionPayload] =
+    useState<ActivityCompletionPayload | null>(null);
   const [submitMessage, setSubmitMessage] = useState("");
   const [isPending, startTransition] = useTransition();
   const [loading, setLoading] = useState(true);
@@ -46,14 +57,46 @@ export function ActivityPlayerClient({
   useEffect(() => {
     async function hydrate() {
       setLoading(true);
-      setActivity(await getActivityBySlug(slug));
+      setSession(null);
+      setAttempts([]);
+      const nextActivity = await getActivityBySlug(slug);
+      setActivity(nextActivity);
 
       const resolved = await resolveActiveChild(childId);
       setActiveChild(resolved.child);
       setAuthReady(Boolean(resolved.user));
+      setCompletion(null);
+      setCompletionPayload(null);
 
       if (resolved.child) {
         await markChildLastLogin(resolved.child.id);
+
+        const localAttempts = loadStoredAttempts().filter(
+          (attempt) => attempt.childId === resolved.child?.id
+        );
+        let remoteAttempts: ActivityAttempt[] = [];
+
+        try {
+          remoteAttempts = await listChildAttempts(resolved.child.id);
+        } catch {
+          remoteAttempts = [];
+        }
+
+        const mergedAttempts = [...localAttempts, ...remoteAttempts].sort(
+          (left, right) =>
+            new Date(right.finishedAt).getTime() - new Date(left.finishedAt).getTime()
+        );
+        setAttempts(mergedAttempts);
+
+        if (nextActivity) {
+          setSession(
+            buildAdaptiveActivitySession({
+              activity: nextActivity,
+              child: resolved.child,
+              attempts: mergedAttempts
+            })
+          );
+        }
       }
 
       setLoading(false);
@@ -93,11 +136,27 @@ export function ActivityPlayerClient({
       activity,
       outcome,
       startedAt,
-      finishedAt
+      finishedAt,
+      session: session ?? undefined,
+      priorAttempts: attempts
     });
 
-    saveAttemptLocally(payload);
+    const localAttempt = saveAttemptLocally(payload);
     setCompletion(outcome);
+    setCompletionPayload(payload);
+    if (localAttempt) {
+      const nextAttempts = [localAttempt, ...attempts];
+      setAttempts(nextAttempts);
+      if (session) {
+        setSession(
+          buildAdaptiveActivitySession({
+            activity,
+            child: activeChild,
+            attempts: nextAttempts
+          })
+        );
+      }
+    }
 
     startTransition(async () => {
       try {
@@ -165,6 +224,11 @@ export function ActivityPlayerClient({
               <span className="rounded-full bg-white/75 px-4 py-2 text-slate-700">
                 {getActivityInteractionLabel(activity.interactionType)}
               </span>
+              {session ? (
+                <span className="rounded-full bg-white/75 px-4 py-2 text-slate-700">
+                  {session.levelLabel}
+                </span>
+              ) : null}
             </div>
           </div>
           <div className="relative min-h-56 overflow-hidden rounded-[2rem] border border-white/60 bg-white/40">
@@ -181,6 +245,9 @@ export function ActivityPlayerClient({
 
       <ActivityEngine
         activity={activity}
+        items={session?.generatedItems}
+        levelLabel={session?.levelLabel}
+        focusLabel={session ? getSkillAreaLabel(session.skillArea) : undefined}
         visualTheme={visualTheme}
         themePack={themePack}
         onComplete={handleComplete}
@@ -205,6 +272,15 @@ export function ActivityPlayerClient({
                 Score {completion.score}. Mistakes {completion.mistakesCount}.{" "}
                 {submitMessage || (isPending ? "Saving progress..." : "")}
               </p>
+              {completionPayload?.levelAdvanced ? (
+                <p className="mt-2 text-sm font-semibold text-emerald-800">
+                  New level unlocked: Level {completionPayload.masteryLevelAfter}.
+                </p>
+              ) : completionPayload?.masteryLevelAfter ? (
+                <p className="mt-2 text-sm font-semibold text-emerald-800">
+                  Keep going at Level {completionPayload.masteryLevelAfter} for stronger mastery.
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-wrap gap-3">
               <LinkButton
@@ -231,14 +307,16 @@ export function ActivityPlayerClient({
               What you learned
             </p>
             <p className="mt-3 text-sm leading-6 text-slate-700">
-              {activity.explanationText}
+              {session?.explanationText ?? activity.explanationText}
             </p>
           </Panel>
           <Panel className="bg-gradient-to-br from-violet-50 to-white">
             <p className="text-xs font-black uppercase tracking-[0.24em] text-violet-700">
               Fun fact
             </p>
-            <p className="mt-3 text-sm leading-6 text-slate-700">{activity.funFact}</p>
+            <p className="mt-3 text-sm leading-6 text-slate-700">
+              {session?.funFact ?? activity.funFact}
+            </p>
           </Panel>
         </div>
       ) : null}

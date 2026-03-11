@@ -39,6 +39,13 @@ function mapActivity(row: ActivityRow, items: ActivityItem[]): ActivityDefinitio
     learningAreas: (row.learning_areas as ActivityDefinition["learningAreas"]) ?? [
       "pattern-recognition"
     ],
+    skillAreas:
+      ((row.config_json as { skillAreas?: ActivityDefinition["skillAreas"] })?.skillAreas as
+        | ActivityDefinition["skillAreas"]
+        | undefined) ?? undefined,
+    primarySkillArea:
+      ((row.config_json as { primarySkillArea?: ActivityDefinition["primarySkillArea"] })
+        ?.primarySkillArea as ActivityDefinition["primarySkillArea"]) ?? undefined,
     instructionsText: row.instructions_text,
     explanationText:
       row.explanation_text ??

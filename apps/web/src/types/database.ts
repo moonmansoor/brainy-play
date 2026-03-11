@@ -191,6 +191,11 @@ export type Database = {
           activity_type: string;
           interaction_type: string;
           learning_areas: string[] | null;
+          skill_areas: string[] | null;
+          primary_skill_area: string | null;
+          session_id: string | null;
+          task_instance_id: string | null;
+          generator_seed: string | null;
           level_played: number;
           difficulty_snapshot: number;
           score: number;
@@ -205,6 +210,13 @@ export type Database = {
           explanation_text: string | null;
           fun_fact: string | null;
           learning_area_scores_json: Json;
+          skill_area_scores_json: Json;
+          mastery_level_before: number | null;
+          mastery_level_after: number | null;
+          mastery_score_before: number | null;
+          mastery_score_after: number | null;
+          level_advanced: boolean;
+          needs_more_practice: string[] | null;
           started_at: string;
           finished_at: string;
         };
@@ -215,6 +227,11 @@ export type Database = {
           activity_type: string;
           interaction_type: string;
           learning_areas?: string[] | null;
+          skill_areas?: string[] | null;
+          primary_skill_area?: string | null;
+          session_id?: string | null;
+          task_instance_id?: string | null;
+          generator_seed?: string | null;
           level_played?: number;
           difficulty_snapshot?: number;
           score: number;
@@ -229,12 +246,99 @@ export type Database = {
           explanation_text?: string | null;
           fun_fact?: string | null;
           learning_area_scores_json?: Json;
+          skill_area_scores_json?: Json;
+          mastery_level_before?: number | null;
+          mastery_level_after?: number | null;
+          mastery_score_before?: number | null;
+          mastery_score_after?: number | null;
+          level_advanced?: boolean;
+          needs_more_practice?: string[] | null;
           started_at: string;
           finished_at: string;
         };
         Update: Partial<
           Database["public"]["Tables"]["activity_attempts"]["Insert"]
         >;
+        Relationships: [];
+      };
+      generated_task_instances: {
+        Row: {
+          id: string;
+          session_id: string;
+          activity_id: string;
+          child_id: string | null;
+          activity_type: string;
+          skill_area: string;
+          skill_areas: string[] | null;
+          level: number;
+          generator_seed: string;
+          generator_version: string;
+          generated_config_json: Json;
+          expected_answer_json: Json;
+          generated_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          activity_id: string;
+          child_id?: string | null;
+          activity_type: string;
+          skill_area: string;
+          skill_areas?: string[] | null;
+          level?: number;
+          generator_seed: string;
+          generator_version: string;
+          generated_config_json?: Json;
+          expected_answer_json?: Json;
+          generated_at?: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["generated_task_instances"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      child_skill_progress: {
+        Row: {
+          id: string;
+          child_id: string;
+          skill_area: string;
+          current_level: number;
+          mastery_score: number;
+          attempts_at_current_level: number;
+          successful_attempts_at_current_level: number;
+          average_success_rate: number;
+          average_mistakes: number;
+          average_duration_seconds: number;
+          weakness_score: number;
+          status: string;
+          level_label: string;
+          positive_summary: string;
+          next_goal: string;
+          last_practiced_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          skill_area: string;
+          current_level?: number;
+          mastery_score?: number;
+          attempts_at_current_level?: number;
+          successful_attempts_at_current_level?: number;
+          average_success_rate?: number;
+          average_mistakes?: number;
+          average_duration_seconds?: number;
+          weakness_score?: number;
+          status?: string;
+          level_label: string;
+          positive_summary: string;
+          next_goal: string;
+          last_practiced_at?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_skill_progress"]["Insert"]>;
         Relationships: [];
       };
       badges: {

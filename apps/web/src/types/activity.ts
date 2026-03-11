@@ -46,6 +46,17 @@ export type LearningArea =
   | "sequencing"
   | "classification";
 
+export type SkillArea =
+  | "shape-recognition"
+  | "pattern-recognition"
+  | "sequencing"
+  | "sorting-classification"
+  | "spatial-reasoning"
+  | "logic-reasoning"
+  | "memory"
+  | "early-coding-logic"
+  | "problem-solving";
+
 export type Difficulty = 1 | 2 | 3;
 
 export type ShapeKind = "circle" | "square" | "triangle" | "star";
@@ -130,6 +141,8 @@ export type ActivityTemplate = {
   interactionType: InteractionType;
   supportedThemes: ThemeId[];
   learningAreas: LearningArea[];
+  skillAreas?: SkillArea[];
+  primarySkillArea?: SkillArea;
   difficultyRules: ActivityTemplateDifficultyRules;
   generationRules: ActivityTemplateGenerationRules;
   defaultExplanationText: string;
@@ -413,6 +426,8 @@ export type ActivityDefinition = {
   difficulty: Difficulty;
   recommendedLevel: number;
   learningAreas: LearningArea[];
+  skillAreas?: SkillArea[];
+  primarySkillArea?: SkillArea;
   instructionsText: string;
   explanationText: string;
   funFact: string;
@@ -429,6 +444,64 @@ export type ActivityDefinition = {
 };
 
 export type LearningAreaScores = Partial<Record<LearningArea, number>>;
+export type SkillAreaScores = Partial<Record<SkillArea, number>>;
+
+export type GeneratedTaskInstance = {
+  id: string;
+  sessionId: string;
+  activityId: string;
+  activityType: ActivityType;
+  childId?: string;
+  level: number;
+  skillArea: SkillArea;
+  skillAreas: SkillArea[];
+  generatorSeed: string;
+  generatorVersion: string;
+  generatedAt: string;
+  generatedConfig: {
+    items: ActivityItem[];
+  };
+  expectedAnswerSnapshot: ActivityItem["answer"][];
+};
+
+export type ChildSkillProgressStatus =
+  | "new"
+  | "practicing"
+  | "ready-to-advance"
+  | "mastered"
+  | "needs-support";
+
+export type ChildSkillProgress = {
+  childId: string;
+  skillArea: SkillArea;
+  currentLevel: number;
+  masteryScore: number;
+  attemptsAtCurrentLevel: number;
+  successfulAttemptsAtCurrentLevel: number;
+  averageSuccessRate: number;
+  averageMistakes: number;
+  averageDurationSeconds: number;
+  weaknessScore: number;
+  status: ChildSkillProgressStatus;
+  lastPracticedAt?: string;
+  levelLabel: string;
+  positiveSummary: string;
+  nextGoal: string;
+};
+
+export type AdaptiveActivitySession = {
+  sessionId: string;
+  activity: ActivityDefinition;
+  taskInstance: GeneratedTaskInstance;
+  generatedItems: ActivityItem[];
+  currentLevel: number;
+  levelLabel: string;
+  skillArea: SkillArea;
+  skillAreas: SkillArea[];
+  masteryBefore: ChildSkillProgress;
+  explanationText: string;
+  funFact: string;
+};
 
 export type ActivityAttempt = {
   id: string;
@@ -437,6 +510,11 @@ export type ActivityAttempt = {
   activityType: ActivityType;
   interactionType: InteractionType;
   learningAreas: LearningArea[];
+  skillAreas?: SkillArea[];
+  primarySkillArea?: SkillArea;
+  sessionId?: string;
+  taskInstanceId?: string;
+  generatorSeed?: string;
   levelPlayed: number;
   difficultySnapshot: number;
   score: number;
@@ -451,6 +529,13 @@ export type ActivityAttempt = {
   explanationText?: string;
   funFact?: string;
   learningAreaScores: LearningAreaScores;
+  skillAreaScores?: SkillAreaScores;
+  masteryLevelBefore?: number;
+  masteryLevelAfter?: number;
+  masteryScoreBefore?: number;
+  masteryScoreAfter?: number;
+  levelAdvanced?: boolean;
+  needsMorePractice?: SkillArea[];
   startedAt: string;
   finishedAt: string;
 };
@@ -476,6 +561,12 @@ export type ActivityCompletionPayload = {
   activityType: ActivityType;
   interactionType: InteractionType;
   learningAreas: LearningArea[];
+  skillAreas?: SkillArea[];
+  primarySkillArea?: SkillArea;
+  sessionId?: string;
+  taskInstance?: GeneratedTaskInstance;
+  taskInstanceId?: string;
+  generatorSeed?: string;
   levelPlayed: number;
   difficultySnapshot: number;
   score: number;
@@ -490,6 +581,13 @@ export type ActivityCompletionPayload = {
   explanationText?: string;
   funFact?: string;
   learningAreaScores: LearningAreaScores;
+  skillAreaScores?: SkillAreaScores;
+  masteryLevelBefore?: number;
+  masteryLevelAfter?: number;
+  masteryScoreBefore?: number;
+  masteryScoreAfter?: number;
+  levelAdvanced?: boolean;
+  needsMorePractice?: SkillArea[];
   startedAt: string;
   finishedAt: string;
 };

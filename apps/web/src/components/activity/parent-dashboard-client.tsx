@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { LinkButton } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
+import { getSkillAreaLabel } from "@/features/adaptive-learning/skill-taxonomy";
 import { getActivityInteractionLabel } from "@/features/activities/template-registry";
 import { resolveActiveChild } from "@/features/child-profiles/child-session-client";
 import { listChildAttempts } from "@/features/child-profiles/child-profiles-client";
@@ -113,18 +114,19 @@ export function ParentDashboardClient({
       <div className="grid gap-4 md:grid-cols-4">
         <Panel className="bg-gradient-to-br from-orange-100 to-white">
           <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+            Current level
+          </p>
+          <p className="mt-3 font-display text-5xl font-semibold">
+            {snapshot.overallLevel}
+          </p>
+          <p className="mt-2 text-sm text-slate-600">{snapshot.overallLevelLabel}</p>
+        </Panel>
+        <Panel className="bg-gradient-to-br from-sky-100 to-white">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
             Total stars
           </p>
           <p className="mt-3 font-display text-5xl font-semibold">
             {snapshot.totalStars}
-          </p>
-        </Panel>
-        <Panel className="bg-gradient-to-br from-sky-100 to-white">
-          <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
-            Attempts
-          </p>
-          <p className="mt-3 font-display text-5xl font-semibold">
-            {snapshot.totalAttempts}
           </p>
         </Panel>
         <Panel className="bg-gradient-to-br from-emerald-100 to-white">
@@ -148,6 +150,9 @@ export function ParentDashboardClient({
       <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
         <Panel>
           <h2 className="font-display text-3xl font-semibold">Recent activity</h2>
+          {snapshot.activePracticeFocus ? (
+            <p className="mt-2 text-sm text-slate-600">{snapshot.currentPracticeReason}</p>
+          ) : null}
           <div className="mt-5 grid gap-3">
             {snapshot.recentAttempts.map((attempt) => {
               const activity = sampleActivities.find(
@@ -178,20 +183,64 @@ export function ParentDashboardClient({
 
         <div className="grid gap-6">
           <Panel>
+            <h2 className="font-display text-3xl font-semibold">Practicing now</h2>
+            {snapshot.activePracticeFocus ? (
+              <div className="mt-4 rounded-[1.5rem] bg-slate-50 p-4">
+                <p className="font-semibold">{snapshot.activePracticeFocus.levelLabel}</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {getSkillAreaLabel(snapshot.activePracticeFocus.skillArea)}
+                </p>
+                <p className="mt-3 text-sm text-slate-700">
+                  Mastery {snapshot.activePracticeFocus.masteryScore}% after{" "}
+                  {snapshot.activePracticeFocus.attemptsAtCurrentLevel} recent rounds.
+                </p>
+                <p className="mt-2 text-sm text-slate-600">
+                  {snapshot.activePracticeFocus.nextGoal}
+                </p>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-slate-600">
+                No skill data yet. Start a fresh activity to build a mastery profile.
+              </p>
+            )}
+          </Panel>
+
+          <Panel>
             <h2 className="font-display text-3xl font-semibold">Strengths</h2>
             <div className="mt-5 grid gap-3">
               {snapshot.strengths.map((item) => (
-                <div key={item.type}>
+                <div key={item.skillArea}>
                   <div className="mb-2 flex items-center justify-between text-sm font-semibold">
-                    <span>{item.type}</span>
-                    <span>{item.average}%</span>
+                    <span>{getSkillAreaLabel(item.skillArea)}</span>
+                    <span>{item.masteryScore}%</span>
                   </div>
                   <div className="h-3 rounded-full bg-slate-100">
                     <div
                       className="h-3 rounded-full bg-emerald-400"
-                      style={{ width: `${item.average}%` }}
+                      style={{ width: `${item.masteryScore}%` }}
                     />
                   </div>
+                </div>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel>
+            <h2 className="font-display text-3xl font-semibold">Needs more practice</h2>
+            <div className="mt-5 grid gap-3">
+              {snapshot.needsPractice.map((item) => (
+                <div key={item.skillArea}>
+                  <div className="mb-2 flex items-center justify-between text-sm font-semibold">
+                    <span>{getSkillAreaLabel(item.skillArea)}</span>
+                    <span>{item.masteryScore}%</span>
+                  </div>
+                  <div className="h-3 rounded-full bg-slate-100">
+                    <div
+                      className="h-3 rounded-full bg-amber-400"
+                      style={{ width: `${item.masteryScore}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600">{item.nextGoal}</p>
                 </div>
               ))}
             </div>
@@ -249,7 +298,7 @@ export function ParentDashboardClient({
                 <div key={activity.id} className="rounded-[1.5rem] bg-slate-50 p-4">
                   <p className="font-semibold">{activity.title}</p>
                   <p className="mt-1 text-sm text-slate-600">
-                    {getActivityTypeLabel(activity.type)} • Level {activity.recommendedLevel}
+                    {getActivityTypeLabel(activity.type)} • {getSkillAreaLabel(activity.primarySkillArea!)}
                   </p>
                 </div>
               ))}
