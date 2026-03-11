@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { Panel } from "@/components/ui/panel";
 import { Button, LinkButton } from "@/components/ui/button";
-import { registerParent, signInParent } from "@/features/auth/auth-client";
+import {
+  getCurrentParentSession,
+  registerParent,
+  signInParent
+} from "@/features/auth/auth-client";
 
 export function ParentAuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
@@ -18,6 +22,26 @@ export function ParentAuthForm({ mode }: { mode: "login" | "register" }) {
   });
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function hydrateSession() {
+      const sessionState = await getCurrentParentSession();
+      if (!active) return;
+
+      setIsSignedIn(Boolean(sessionState.user));
+      setCheckingSession(false);
+    }
+
+    void hydrateSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleSubmit() {
     setSubmitting(true);
@@ -39,6 +63,59 @@ export function ParentAuthForm({ mode }: { mode: "login" | "register" }) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (checkingSession) {
+    return (
+      <Panel className="mx-auto w-full max-w-xl">
+        <div className="grid gap-4">
+          <div className="flex justify-center">
+            <BrandLogo size="md" />
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+              Parent account
+            </p>
+            <h2 className="mt-2 font-display text-3xl font-semibold">
+              Checking your session
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              One moment while Brainy Play loads your account.
+            </p>
+          </div>
+        </div>
+      </Panel>
+    );
+  }
+
+  if (isSignedIn) {
+    return (
+      <Panel className="mx-auto w-full max-w-xl">
+        <div className="grid gap-4">
+          <div className="flex justify-center">
+            <BrandLogo size="md" />
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+              Parent account
+            </p>
+            <h2 className="mt-2 font-display text-3xl font-semibold">
+              You are already signed in
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Your account is active, so the {mode === "register" ? "create account" : "login"} form
+              is hidden.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <LinkButton href="/child">Go to child profiles</LinkButton>
+            <LinkButton href="/parent" variant="secondary">
+              Open parent dashboard
+            </LinkButton>
+          </div>
+        </div>
+      </Panel>
+    );
   }
 
   return (
