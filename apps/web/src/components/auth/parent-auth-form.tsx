@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { Panel } from "@/components/ui/panel";
 import { Button, LinkButton } from "@/components/ui/button";
 import { registerParent, signInParent } from "@/features/auth/auth-client";
@@ -43,6 +44,9 @@ export function ParentAuthForm({ mode }: { mode: "login" | "register" }) {
   return (
     <Panel className="mx-auto w-full max-w-xl">
       <div className="grid gap-4">
+        <div className="flex justify-center">
+          <BrandLogo size="md" />
+        </div>
         <div>
           <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
             Parent account
