@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ReactNode } from "react";
 
 import { Panel } from "@/components/ui/panel";
 import { getActivityInteractionLabel } from "@/features/activities/template-registry";
@@ -12,6 +13,22 @@ import {
   isAgeMatch
 } from "@/lib/utils/activity";
 import { ActivityDefinition, ChildProfile } from "@/types/activity";
+
+function ActivityMetaPill({
+  children,
+  className
+}: {
+  children: ReactNode;
+  className: string;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none ${className}`}
+    >
+      {children}
+    </span>
+  );
+}
 
 export function ActivityCard({
   activity,
@@ -29,6 +46,30 @@ export function ActivityCard({
   const readyForAge = isAgeMatch(activity, getChildAge(child));
   const visualTheme = getActivityVisualTheme(activity, child);
   const themePack = getThemePack(visualTheme.themeId);
+  const focusPills = [
+    {
+      label: levelLabel ?? `Level ${activity.recommendedLevel}`,
+      className: "bg-amber-100 text-amber-800"
+    },
+    skillLabel
+      ? {
+          label: skillLabel,
+          className: "bg-lime-100 text-lime-800"
+        }
+      : null,
+    {
+      label: statusLabel ?? (readyForAge ? "Ready now" : "Stretch activity"),
+      className: readyForAge
+        ? "bg-emerald-100 text-emerald-800"
+        : "bg-slate-100 text-slate-600"
+    }
+  ].filter(Boolean) as { label: string; className: string }[];
+  const detailPills = [
+    `Age ${activity.ageMin}-${activity.ageMax}`,
+    `${activity.items.length} rounds`,
+    getActivityInteractionLabel(activity.interactionType),
+    themePack.name
+  ];
 
   return (
     <Link href={`/child/activities/${activity.slug}?childId=${child.id}`}>
@@ -63,42 +104,24 @@ export function ActivityCard({
         </div>
         <div className="p-5">
           <p className="text-sm leading-6 text-slate-700">{activity.instructionsText}</p>
-          <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold uppercase tracking-[0.18em]">
-            <span
-              className="rounded-full px-3 py-2"
-              style={{
-                backgroundColor: themePack.accentSoft,
-                color: themePack.accentStrong
-              }}
-            >
-              {themePack.name} pack
-            </span>
-            <span className="rounded-full bg-orange-100 px-3 py-2 text-orange-700">
-              Age {activity.ageMin}-{activity.ageMax}
-            </span>
-            <span className="rounded-full bg-sky-100 px-3 py-2 text-sky-700">
-              {activity.items.length} rounds
-            </span>
-            <span className="rounded-full bg-violet-100 px-3 py-2 text-violet-700">
-              {getActivityInteractionLabel(activity.interactionType)}
-            </span>
-            <span className="rounded-full bg-amber-100 px-3 py-2 text-amber-700">
-              {levelLabel ?? `Level ${activity.recommendedLevel}`}
-            </span>
-            {skillLabel ? (
-              <span className="rounded-full bg-lime-100 px-3 py-2 text-lime-700">
-                {skillLabel}
-              </span>
-            ) : null}
-            <span
-              className={`rounded-full px-3 py-2 ${
-                readyForAge
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-slate-100 text-slate-600"
-              }`}
-            >
-              {statusLabel ?? (readyForAge ? "Ready now" : "Stretch activity")}
-            </span>
+          <div className="mt-5 space-y-2.5">
+            <div className="flex flex-wrap gap-1.5">
+              {focusPills.map((pill) => (
+                <ActivityMetaPill key={pill.label} className={pill.className}>
+                  {pill.label}
+                </ActivityMetaPill>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1.5 border-t border-slate-100 pt-2.5">
+              {detailPills.map((pill) => (
+                <ActivityMetaPill
+                  key={pill}
+                  className="bg-slate-100/90 text-slate-600"
+                >
+                  {pill}
+                </ActivityMetaPill>
+              ))}
+            </div>
           </div>
         </div>
       </Panel>
