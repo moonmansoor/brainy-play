@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { MascotBrain } from "@/components/brand/mascot-brain";
+import {
+  AppViewerType,
+  resolveViewerType
+} from "@/features/auth/viewer-type-client";
 
 export function AppShell({
   children,
@@ -19,11 +23,34 @@ export function AppShell({
   actions?: ReactNode;
 }) {
   const pathname = usePathname();
+  const [viewerType, setViewerType] = useState<AppViewerType>("guest");
+
+  useEffect(() => {
+    let active = true;
+
+    async function hydrateViewerType() {
+      const nextViewerType = await resolveViewerType();
+
+      if (!active) return;
+      setViewerType(nextViewerType);
+    }
+
+    void hydrateViewerType();
+
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
+
   const navItems = [
-    { href: "/child", label: "Child" },
-    { href: "/parent", label: "Parent" },
-    { href: "/admin", label: "Admin" }
+    { href: "/child/activities", label: "Learning" },
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/quiz", label: "Quiz" }
   ];
+
+  if (viewerType === "admin") {
+    navItems.push({ href: "/admin", label: "Admin" });
+  }
 
   return (
     <div className="min-h-screen">

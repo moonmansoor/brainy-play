@@ -109,8 +109,8 @@ export function ParentAuthForm({ mode }: { mode: "login" | "register" }) {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <LinkButton href="/child">Go to child profiles</LinkButton>
-            <LinkButton href="/parent" variant="secondary">
-              Open parent dashboard
+            <LinkButton href="/dashboard" variant="secondary">
+              Open dashboard
             </LinkButton>
           </div>
         </div>

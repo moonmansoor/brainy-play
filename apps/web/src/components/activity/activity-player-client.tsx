@@ -309,7 +309,7 @@ export function ActivityPlayerClient({
                 More activities
               </LinkButton>
               <Link
-                href={`/parent?childId=${activeChild.id}`}
+                href={`/dashboard?childId=${activeChild.id}`}
                 className="inline-flex min-h-12 items-center rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white"
               >
                 View progress
