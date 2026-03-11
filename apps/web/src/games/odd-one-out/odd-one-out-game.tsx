@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 
+import { MascotBrain } from "@/components/brand/mascot-brain";
 import { Panel } from "@/components/ui/panel";
 import { buildOutcome } from "@/lib/utils/activity";
 import {
@@ -114,7 +115,12 @@ export function OddOneOutGame({
       {selectedId && selectedId !== answer.correctOptionId && !resolved ? (
         <div className="lg:col-span-2">
           <Panel className="bg-red-50 text-sm text-red-700">
-            Three cards belong together. Look for the one that breaks the set.
+            <MascotBrain
+              state="encouraging"
+              size="sm"
+              animation="float"
+              message="Three cards belong together. Brainy says look for the one that breaks the set."
+            />
           </Panel>
         </div>
       ) : null}

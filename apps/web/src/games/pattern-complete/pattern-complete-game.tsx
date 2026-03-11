@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 
+import { MascotBrain } from "@/components/brand/mascot-brain";
 import { Panel } from "@/components/ui/panel";
 import { ShapeToken } from "@/components/activity/shape-token";
 import { buildOutcome, getShapeName } from "@/lib/utils/activity";
@@ -131,7 +132,12 @@ export function PatternCompleteGame({
       </div>
       {selectedId && selectedId !== answer.correctOptionId && !resolved ? (
         <Panel className="bg-red-50 text-sm text-red-700">
-          The pattern repeats. Follow {themePack.mascotName}&apos;s rhythm and pick the matching visual beat.
+          <MascotBrain
+            state="encouraging"
+            size="sm"
+            animation="float"
+            message={`The pattern repeats. Follow ${themePack.mascotName}'s rhythm and pick the matching visual beat.`}
+          />
         </Panel>
       ) : null}
     </div>

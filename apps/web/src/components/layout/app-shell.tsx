@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 
+import { MascotBrain } from "@/components/brand/mascot-brain";
+
 export function AppShell({
   children,
   heading,
@@ -16,9 +18,7 @@ export function AppShell({
     <div className="min-h-screen">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3 font-display text-xl font-semibold tracking-tight">
-          <span className="flex h-11 w-11 items-center justify-center rounded-[1.2rem] bg-gradient-to-br from-[#ffd978] via-[#ff9f6d] to-[#ff7f8d] text-xl shadow-playful">
-            ✦
-          </span>
+          <MascotBrain state="happy" size="xs" animation="float" className="gap-0" />
           <span>Code for Beginner</span>
         </Link>
         <nav className="flex items-center gap-2 rounded-full bg-white/70 p-1 text-sm font-semibold shadow-playful backdrop-blur">
@@ -35,7 +35,7 @@ export function AppShell({
       </header>
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-12 sm:px-6 lg:px-8">
         {(heading || subheading || actions) && (
-          <section className="grid gap-4 rounded-[2rem] border border-white/70 bg-white/60 bg-confetti p-6 shadow-playful backdrop-blur lg:grid-cols-[1fr_auto] lg:items-end">
+          <section className="grid gap-4 rounded-[2rem] border border-white/70 bg-white/60 bg-confetti p-6 shadow-playful backdrop-blur lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="max-w-3xl">
               {heading ? (
                 <h1 className="font-display text-4xl font-semibold leading-tight text-balance sm:text-5xl">
@@ -48,7 +48,17 @@ export function AppShell({
                 </p>
               ) : null}
             </div>
-            {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+            <div className="grid gap-4 justify-items-start lg:justify-items-end">
+              <MascotBrain
+                state="teaching"
+                animation="float"
+                size="lg"
+                message="Brainy is here to guide every playful learning step."
+                className="items-start"
+                reverse
+              />
+              {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+            </div>
           </section>
         )}
         {children}

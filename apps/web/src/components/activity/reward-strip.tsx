@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+import { MascotBrain } from "@/components/brand/mascot-brain";
 import { Panel } from "@/components/ui/panel";
 import { getRewardHeadline } from "@/lib/utils/activity";
 import { RewardStyle } from "@/types/activity";
@@ -27,12 +28,21 @@ export function RewardStrip({
             ))}
           </div>
         </div>
-        <div className="relative h-24 w-24 shrink-0">
-          <Image
-            src={rewardStyle === "badges" ? "/images/rewards/badge-ribbon.svg" : "/images/rewards/star-burst.svg"}
-            alt="Reward"
-            fill
-            sizes="96px"
+        <div className="flex items-center gap-4">
+          <div className="relative h-24 w-24 shrink-0">
+            <Image
+              src={rewardStyle === "badges" ? "/images/rewards/badge-ribbon.svg" : "/images/rewards/star-burst.svg"}
+              alt="Reward"
+              fill
+              sizes="96px"
+            />
+          </div>
+          <MascotBrain
+            state="celebrating"
+            animation="sparkle"
+            size="sm"
+            message="Brainy is celebrating this great job."
+            reverse
           />
         </div>
       </div>

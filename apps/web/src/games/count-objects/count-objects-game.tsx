@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 
+import { MascotBrain } from "@/components/brand/mascot-brain";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { buildOutcome } from "@/lib/utils/activity";
@@ -127,9 +128,14 @@ export function CountObjectsGame({
           <Button onClick={handleSubmit}>Check answer</Button>
         </div>
         {selectedCount !== null && selectedCount !== answer.correctCount && !resolved ? (
-          <div className="mt-4 rounded-[1.5rem] bg-red-50 p-4 text-sm text-red-700">
-            Count one more time with {themePack.mascotName}.
-          </div>
+          <Panel className="mt-4 bg-red-50">
+            <MascotBrain
+              state="encouraging"
+              size="sm"
+              animation="float"
+              message={`Count one more time with ${themePack.mascotName}. Brainy says point to each object once.`}
+            />
+          </Panel>
         ) : null}
       </Panel>
     </div>

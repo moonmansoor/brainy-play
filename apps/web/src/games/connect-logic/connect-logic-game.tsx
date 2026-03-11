@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 
+import { MascotBrain } from "@/components/brand/mascot-brain";
 import { Panel } from "@/components/ui/panel";
 import { buildOutcome } from "@/lib/utils/activity";
 import {
@@ -164,7 +165,16 @@ export function ConnectLogicGame({
         </div>
       </Panel>
 
-      {feedback ? <Panel className="bg-red-50 text-sm text-red-700">{feedback}</Panel> : null}
+      {feedback ? (
+        <Panel className="bg-red-50 text-sm text-red-700">
+          <MascotBrain
+            state="encouraging"
+            size="sm"
+            animation="float"
+            message={feedback}
+          />
+        </Panel>
+      ) : null}
     </div>
   );
 }

@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="256" cy="448" rx="138" ry="24" fill="#D7E7F1"/>
+  <image href="/assets/mascot/brainy-base.png" x="6" y="-80" width="500" height="750" preserveAspectRatio="xMidYMid meet"/>
+  <path d="M105 128L121 97" stroke="#FFC83D" stroke-width="10" stroke-linecap="round"/>
+  <path d="M99 104L126 115" stroke="#FFC83D" stroke-width="10" stroke-linecap="round"/>
+  <path d="M421 132L445 104" stroke="#66D4AE" stroke-width="10" stroke-linecap="round"/>
+  <path d="M427 103L452 124" stroke="#66D4AE" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="86" cy="176" r="11" fill="#FF8AA5"/>
+  <circle cx="425" cy="185" r="11" fill="#7AC7FF"/>
+  <circle cx="151" cy="97" r="9" fill="#A56DFF"/>
+  <circle cx="384" cy="95" r="9" fill="#FFC83D"/>
+  <path d="M254 66L264 89L289 92L270 108L276 132L254 120L232 132L238 108L219 92L244 89L254 66Z" fill="#FFC83D" stroke="#11163D" stroke-width="6"/>
+</svg>

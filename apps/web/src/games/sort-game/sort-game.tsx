@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 
+import { MascotBrain } from "@/components/brand/mascot-brain";
 import { ShapeToken } from "@/components/activity/shape-token";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
@@ -181,7 +182,16 @@ export function SortGame({
         </Button>
       </div>
 
-      {feedback ? <Panel className="bg-red-50 text-sm text-red-700">{feedback}</Panel> : null}
+      {feedback ? (
+        <Panel className="bg-red-50 text-sm text-red-700">
+          <MascotBrain
+            state="encouraging"
+            size="sm"
+            animation="float"
+            message={feedback}
+          />
+        </Panel>
+      ) : null}
     </div>
   );
 }
