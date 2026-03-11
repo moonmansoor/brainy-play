@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode, useEffect, useState } from "react";
+import { ComponentProps, ReactNode, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
@@ -15,12 +15,18 @@ export function AppShell({
   children,
   heading,
   subheading,
-  actions
+  actions,
+  mascotMessage,
+  mascotState = "teaching",
+  mascotAnimation = "float"
 }: {
   children: ReactNode;
   heading?: string;
   subheading?: string;
   actions?: ReactNode;
+  mascotMessage?: string;
+  mascotState?: ComponentProps<typeof MascotBrain>["state"];
+  mascotAnimation?: ComponentProps<typeof MascotBrain>["animation"];
 }) {
   const pathname = usePathname();
   const [viewerType, setViewerType] = useState<AppViewerType>("guest");
@@ -96,10 +102,12 @@ export function AppShell({
             </div>
             <div className="grid gap-4 justify-items-start lg:justify-items-end">
               <MascotBrain
-                state="teaching"
-                animation="float"
+                state={mascotState}
+                animation={mascotAnimation}
                 size="lg"
-                message="Brainy is here to guide every playful learning step."
+                message={
+                  mascotMessage ?? "Brainy is here to guide every playful learning step."
+                }
                 className="items-start"
                 reverse
               />
