@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { DragEvent, useMemo, useState } from "react";
 
 import { MascotBrain } from "@/components/brand/mascot-brain";
 import { ShapeToken } from "@/components/activity/shape-token";
@@ -35,6 +35,7 @@ export function SortGame({
   const [placements, setPlacements] = useState<Record<string, string>>({});
   const [mistakesCount, setMistakesCount] = useState(0);
   const [feedback, setFeedback] = useState("");
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [startedAt] = useState(() => Date.now());
 
   const allPlaced = useMemo(
@@ -42,14 +43,39 @@ export function SortGame({
     [config.options, placements]
   );
 
-  function placeInGroup(groupId: string) {
-    if (!selectedOptionId) return;
-
+  function placeInGroup(groupId: string, optionId: string) {
     setPlacements((current) => ({
       ...current,
-      [selectedOptionId]: groupId
+      [optionId]: groupId
     }));
     setSelectedOptionId(null);
+    setFeedback("");
+    setActiveGroupId(null);
+  }
+
+  function handleGroupTap(groupId: string) {
+    if (!selectedOptionId) return;
+    placeInGroup(groupId, selectedOptionId);
+  }
+
+  function handleDragStart(event: DragEvent<HTMLButtonElement>, optionId: string) {
+    event.dataTransfer.setData("text/plain", optionId);
+    event.dataTransfer.effectAllowed = "move";
+    setSelectedOptionId(optionId);
+    setFeedback("");
+  }
+
+  function handleDrop(event: DragEvent<HTMLButtonElement>, groupId: string) {
+    event.preventDefault();
+    const optionId = event.dataTransfer.getData("text/plain") || selectedOptionId;
+    if (!optionId) return;
+    placeInGroup(groupId, optionId);
+  }
+
+  function clearSorting() {
+    setPlacements({});
+    setSelectedOptionId(null);
+    setActiveGroupId(null);
     setFeedback("");
   }
 
@@ -95,6 +121,9 @@ export function SortGame({
                 {promptText}
               </p>
             ) : null}
+            <p className="mt-4 text-sm leading-6 text-slate-700">
+              Drag each token into the correct group. On touch screens, tap a token first and then tap a group.
+            </p>
           </div>
           <div className="relative min-h-52 overflow-hidden rounded-[2rem] border border-white/60 bg-white/40">
             <Image
@@ -109,7 +138,7 @@ export function SortGame({
       </Panel>
 
       <Panel>
-        <p className="font-display text-2xl font-semibold">Choose a token to sort</p>
+        <p className="font-display text-2xl font-semibold">Drag a token into the right group</p>
         <div className="mt-4 grid gap-4 md:grid-cols-4">
           {config.options.map((option) => {
             const placedGroupId = placements[option.id];
@@ -120,6 +149,8 @@ export function SortGame({
                 key={option.id}
                 type="button"
                 onClick={() => setSelectedOptionId(option.id)}
+                draggable
+                onDragStart={(event) => handleDragStart(event, option.id)}
                 className="text-left"
               >
                 <Panel
@@ -136,7 +167,7 @@ export function SortGame({
                   <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
                     {placedGroupId
                       ? `In ${config.groups.find((group) => group.id === placedGroupId)?.label}`
-                      : "Not sorted yet"}
+                      : "Drag to sort"}
                   </span>
                 </Panel>
               </button>
@@ -147,9 +178,25 @@ export function SortGame({
 
       <div className="grid gap-4 md:grid-cols-2">
         {config.groups.map((group) => (
-          <button key={group.id} type="button" onClick={() => placeInGroup(group.id)}>
+          <button
+            key={group.id}
+            type="button"
+            onClick={() => handleGroupTap(group.id)}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setActiveGroupId(group.id);
+            }}
+            onDragLeave={() =>
+              setActiveGroupId((current) => (current === group.id ? null : current))
+            }
+            onDrop={(event) => handleDrop(event, group.id)}
+          >
             <Panel
-              className="min-h-44 border-2 border-dashed"
+              className={`min-h-44 border-2 ${
+                activeGroupId === group.id
+                  ? "border-orange-500 ring-4 ring-orange-200 shadow-[0_0_0_1px_rgba(249,115,22,0.18)]"
+                  : "border-dashed"
+              }`}
               style={{ borderColor: group.color, backgroundColor: `${group.color}33` }}
             >
               <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-600">
@@ -177,9 +224,16 @@ export function SortGame({
         <p className="text-sm text-slate-600">
           Mistakes: <span className="font-bold">{mistakesCount}</span>
         </p>
-        <Button onClick={handleCheck} disabled={!allPlaced}>
-          Check sorting
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          {Object.keys(placements).length > 0 ? (
+            <Button variant="secondary" onClick={clearSorting}>
+              Reset sorting
+            </Button>
+          ) : null}
+          <Button onClick={handleCheck} disabled={!allPlaced}>
+            Check sorting
+          </Button>
+        </div>
       </div>
 
       {feedback ? (
